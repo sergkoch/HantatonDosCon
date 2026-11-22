@@ -13,6 +13,7 @@ Thumbs.db
 
 server/bin/
 server/tmp/
+server/pdfspike-out/
 server/coverage.out
 server/*.test
 

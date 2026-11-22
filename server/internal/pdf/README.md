@@ -14,20 +14,24 @@
 
 ## Инструменты
 
-- `github.com/klippa-app/go-pdfium` — PDFium, лицензия BSD.
-- `github.com/pdfcpu/pdfcpu` — быстрый fallback, Apache 2.0.
+- `github.com/klippa-app/go-pdfium` — PDFium в режиме WebAssembly (Wazero),
+  без cgo и без `pdfium.dll`. Лицензия BSD.
+- `github.com/pdfcpu/pdfcpu` — fallback для `Title`, `Lang` и признака тегов.
+  Apache 2.0.
 - `tesseract` CLI — OCR, Apache 2.0.
 
 ## План
 
 ### День 1. Спайк
 
-- [ ] открыть реальный PDF;
-- [ ] получить число страниц;
-- [ ] извлечь текст;
-- [ ] найти `/StructTreeRoot`;
-- [ ] пройти по дереву и достать `/Alt`;
-- [ ] отрендерить страницу в PNG;
+Результат: `docs/pdf-spike.md`. Выбран `go-pdfium` в режиме WebAssembly.
+
+- [x] открыть PDF;
+- [x] получить число страниц;
+- [x] извлечь текст;
+- [x] найти `/StructTreeRoot`;
+- [x] пройти по дереву и достать `/Alt`;
+- [x] отрендерить страницу в PNG;
 - [ ] прогнать PNG через `tesseract page.png stdout -l rus+eng`.
 
 ### Дальше
@@ -40,14 +44,14 @@
 
 ## Docker
 
-В образе нужны:
+В режиме WebAssembly `libpdfium.so`, `CGO_ENABLED=1` и `LD_LIBRARY_PATH` не
+нужны: PDFium встроен в бинарник.
 
-- `libpdfium.so`;
+Для OCR в образе нужны:
+
 - `tesseract-ocr`;
 - `tesseract-ocr-rus`;
 - `ca-certificates`.
-
-Сборка: `CGO_ENABLED=1`, `CGO_LDFLAGS`, `LD_LIBRARY_PATH`.
 
 ## Готово, если
 
@@ -57,10 +61,10 @@
 - [ ] Битый PDF не роняет сервис.
 - [ ] Таймаут срабатывает.
 
-## Если PDFium не собирается
+## Если PDFium падает на конкретном файле
 
-Не тратим день. Оставляем:
+Не роняем API. Оставляем fallback:
 
-- `pdfcpu` для текстового слоя и метаданных;
+- `pdfcpu` для текстового слоя (эвристика по операторам), тегов, `Title`, `Lang`;
 - Tesseract для сканов;
 - глубину PDF/UA — на бонус.
