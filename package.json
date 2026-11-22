@@ -1,0 +1,11 @@
+{
+  "name": "accessible-content",
+  "private": true,
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0"
+  }
+}

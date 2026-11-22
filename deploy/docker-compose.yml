@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: accessible
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d accessible"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../server
+    environment:
+      LISTEN: ":8080"
+      DATABASE_URL: postgres://postgres:postgres@db:5432/accessible?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8080"
+
+  web:
+    build:
+      context: ../client
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  db-data:
