@@ -9,11 +9,11 @@
   --color-text: #111827;
   --color-muted: #4b5563;
   --color-border: #d1d5db;
-  --color-accent: #1d4ed8;
-  --color-accent-strong: #1e40af;
-  --color-accent-soft: #dbeafe;
-  --color-on-accent: #ffffff;
-  --color-focus: #1d4ed8;
+  --color-accent: #0ea5e9;
+  --color-accent-strong: #0284c7;
+  --color-accent-soft: #e0f2fe;
+  --color-on-accent: #000000;
+  --color-focus: #0ea5e9;
   --color-critical: #b91c1c;
   --color-critical-soft: #fee2e2;
   --color-warning: #92400e;
@@ -163,7 +163,9 @@ a:hover {
 
 .hero {
   max-width: 760px;
+  margin-inline: auto;
   margin-bottom: var(--space-7);
+  text-align: center;
 }
 
 .hero__eyebrow {
@@ -183,6 +185,7 @@ a:hover {
 
 .hero__lead {
   max-width: 62ch;
+  margin-inline: auto;
   color: var(--color-muted);
   font-size: 1.125rem;
 }
