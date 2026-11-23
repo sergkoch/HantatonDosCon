@@ -20,7 +20,7 @@
 
 | Слой | Технология | Зачем |
 | --- | --- | --- |
-| Интерфейс | React + TypeScript + Vite | быстрый старт, много учебных материалов |
+| Интерфейс | Svelte 5 + TypeScript + Vite | быстрый старт, мало кода |
 | API | Go + Gin | один бинарник, простая параллельность |
 | Краулер | Colly + goquery | обход домена, глубина, `robots.txt` |
 | PDF | go-pdfium + pdfcpu | текст, теги, `/Alt`, рендер; без Python |
@@ -72,7 +72,7 @@ docker compose -f deploy/docker-compose.yml up -d db
 
 ```
 accessible-content/
-  client/          React-интерфейс
+  client/          Svelte-интерфейс
   server/          Go-API
   deploy/          Docker Compose, nginx
   demo-site/       сайт с заранее известными ошибками

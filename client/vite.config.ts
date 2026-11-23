@@ -1,8 +1,8 @@
-import react from "@vitejs/plugin-react";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [svelte()],
   server: {
     port: 5173,
     proxy: {
@@ -10,7 +10,6 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "jsdom",
-    setupFiles: ["./src/test-setup.ts"],
+    environment: "node",
   },
 });
