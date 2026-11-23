@@ -3,10 +3,15 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
+	"accessible-content/server/internal/ai"
+	"accessible-content/server/internal/checks"
+	"accessible-content/server/internal/crawler"
 	"accessible-content/server/internal/store"
 
 	"github.com/gin-gonic/gin"
@@ -75,7 +80,7 @@ func (h *handler) createScan(c *gin.Context) {
 		return
 	}
 
-	go h.runMockScan(scan.ID)
+	go h.runScan(scan)
 
 	c.JSON(http.StatusCreated, scan)
 }
@@ -95,50 +100,142 @@ func (h *handler) getScan(c *gin.Context) {
 	c.JSON(http.StatusOK, scan)
 }
 
-func (h *handler) runMockScan(id string) {
-	time.Sleep(2 * time.Second)
+func (h *handler) runScan(initial store.Scan) {
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
 
-	ctx := context.Background()
-	scan, err := h.store.Get(ctx, id)
+	scan, err := h.store.Get(ctx, initial.ID)
 	if err != nil {
 		return
 	}
 
-	score := 42
-	scan.Status = store.StatusDone
-	scan.Score = &score
-	scan.Stats = store.Stats{Critical: 2, Warning: 1, OK: 1}
-	scan.Findings = []store.Finding{
-		{
-			ID:             "f1",
-			Kind:           "image",
-			Severity:       store.SeverityCritical,
-			Title:          "Нет alt у изображения",
-			Element:        `<img src="photo.svg">`,
-			Recommendation: "Добавьте описание, что на картинке.",
-			WCAG:           "1.1.1",
-		},
-		{
-			ID:             "f2",
-			Kind:           "pdf",
-			Severity:       store.SeverityCritical,
-			Title:          "PDF без текстового слоя",
-			Element:        `<a href="report.pdf">Скачать отчёт</a>`,
-			Recommendation: "Опубликуйте текстовую версию или PDF с текстовым слоем.",
-			WCAG:           "1.3.1",
-		},
-		{
-			ID:             "f3",
-			Kind:           "link",
-			Severity:       store.SeverityWarning,
-			Title:          "Ссылка «подробнее»",
-			Element:        `<a href="/news/1">подробнее</a>`,
-			Recommendation: "Напишите, что откроется: «Положение о конкурсе».",
-			WCAG:           "2.4.4",
-		},
+	scan.Status = store.StatusRunning
+	if err := h.store.Update(ctx, scan); err != nil {
+		h.log.Error("update running scan", "error", err)
+		return
 	}
 
+	if h.crawler == nil {
+		h.fail(ctx, scan, "но не настроен")
+		return
+	}
+
+	pages, err := h.crawler.Crawl(ctx, scan.URL, scan.Depth)
+	if err != nil {
+		h.log.Error("crawl failed", "url", scan.URL, "error", err)
+		h.fail(ctx, scan, "краулер завершился ошибкой")
+		return
+	}
+
+	altChecker := checks.AltChecker{}
+	linkChecker := checks.LinkChecker{}
+
+	checkFindings := make([]checks.Finding, 0)
+	links := make([]crawler.Link, 0)
+	for _, page := range pages {
+		checkFindings = append(checkFindings, altChecker.Check(page)...)
+		checkFindings = append(checkFindings, linkChecker.Check(page)...)
+		links = append(links, page.Links...)
+		links = append(links, page.PDFs...)
+	}
+
+	if h.aiClient != nil {
+		h.runAILinkChecks(ctx, pages, &checkFindings)
+	}
+
+	checkFindings = append(checkFindings, checks.BrokenLinks(ctx, h.httpClient, links, 20)...)
+
+	critical, warning, ok := checks.Stats(checkFindings)
+	score := checks.Score(checkFindings)
+
+	scan.Findings = toStoreFindings(checkFindings)
+	scan.Stats = store.Stats{Critical: critical, Warning: warning, OK: ok}
+	scan.Score = &score
+	scan.Status = store.StatusDone
+
 	if err := h.store.Update(ctx, scan); err != nil {
-		h.log.Error("update mock scan", "error", err)
+		h.log.Error("update finished scan", "error", err)
+	}
+}
+
+func (h *handler) runAILinkChecks(ctx context.Context, pages []crawler.Page, findings *[]checks.Finding) {
+	const budget = 8
+	seen := make(map[string]struct{})
+	left := budget
+
+	for _, page := range pages {
+		links := make([]crawler.Link, 0, len(page.Links)+len(page.PDFs))
+		links = append(links, page.Links...)
+		links = append(links, page.PDFs...)
+
+		for _, link := range links {
+			if left <= 0 {
+				return
+			}
+			if !checks.IsGenericLinkText(link.Text) {
+				continue
+			}
+			if _, ok := seen[link.Href]; ok {
+				continue
+			}
+			seen[link.Href] = struct{}{}
+			left--
+
+			res, err := h.aiClient.CheckLink(ctx, ai.LinkRequest{Text: link.Text, URL: link.Href})
+			if err != nil {
+				h.log.Warn("ai link check failed", "href", link.Href, "error", err)
+				continue
+			}
+			if res.SuggestedText == "" {
+				continue
+			}
+
+			*findings = append(*findings, checks.Finding{
+				Code:           "LINK_TEXT_MISMATCH",
+				Severity:       "warning",
+				Title:          "Текст ссылки не соответствует цели",
+				Element:        fmt.Sprintf(`<a href="%s">%s</a>`, link.Href, link.Text),
+				Recommendation: fmt.Sprintf("Предлагаемый текст: «%s».", res.SuggestedText),
+				WCAG:           "2.4.4",
+			})
+		}
+	}
+}
+
+func (h *handler) fail(ctx context.Context, scan store.Scan, reason string) {
+	h.log.Error("scan failed", "id", scan.ID, "reason", reason)
+	scan.Status = store.StatusFailed
+	if err := h.store.Update(ctx, scan); err != nil {
+		h.log.Error("update failed scan", "error", err)
+	}
+}
+
+func toStoreFindings(findings []checks.Finding) []store.Finding {
+	result := make([]store.Finding, 0, len(findings))
+	for i, f := range findings {
+		result = append(result, store.Finding{
+			ID:             fmt.Sprintf("f%d", i+1),
+			Kind:           kindFromCode(f.Code),
+			Severity:       store.Severity(f.Severity),
+			Title:          f.Title,
+			Element:        f.Element,
+			Recommendation: f.Recommendation,
+			WCAG:           f.WCAG,
+		})
+	}
+
+	return result
+}
+
+func kindFromCode(code string) string {
+	switch {
+	case strings.HasPrefix(code, "IMG_"):
+		return "image"
+	case strings.HasPrefix(code, "PDF_"):
+		return "pdf"
+	case strings.HasPrefix(code, "LINK_"):
+		return "link"
+	default:
+		return "image"
 	}
 }

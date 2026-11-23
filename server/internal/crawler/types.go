@@ -3,8 +3,9 @@ package crawler
 import "context"
 
 type Image struct {
-	Src string
-	Alt string
+	Src    string
+	Alt    string
+	HasAlt bool
 }
 
 type Link struct {

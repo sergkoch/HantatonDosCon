@@ -7,10 +7,12 @@ COPY . .
 
 RUN go mod tidy
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /out/api /api
+COPY --from=build /out/migrate /migrate
 
 EXPOSE 8080
 

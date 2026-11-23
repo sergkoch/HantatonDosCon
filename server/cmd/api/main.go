@@ -10,8 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"accessible-content/server/internal/ai"
 	"accessible-content/server/internal/api"
 	"accessible-content/server/internal/config"
+	"accessible-content/server/internal/crawler"
 	"accessible-content/server/internal/store"
 )
 
@@ -19,11 +21,23 @@ func main() {
 	cfg := config.Load()
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
+	var aiClient ai.Client
+	if cfg.AIKey != "" && cfg.AIText != "" {
+		aiClient = ai.NewOpenAI(ai.Options{
+			BaseURL:     cfg.AIBaseURL,
+			APIKey:      cfg.AIKey,
+			TextModel:   cfg.AIText,
+			VisionModel: cfg.AIVision,
+		})
+	}
+
 	memory := store.NewMemory()
 	handler := api.NewRouter(api.Options{
 		Store:        memory,
 		Log:          log,
 		AIConfigured: cfg.AIKey != "",
+		Crawler:      crawler.New(crawler.Options{}),
+		AI:           aiClient,
 	})
 
 	server := &http.Server{

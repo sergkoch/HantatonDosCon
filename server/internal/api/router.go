@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"accessible-content/server/internal/ai"
+	"accessible-content/server/internal/crawler"
 	"accessible-content/server/internal/store"
 
 	"github.com/gin-gonic/gin"
@@ -15,12 +17,17 @@ type Options struct {
 	Store        store.Store
 	Log          *slog.Logger
 	AIConfigured bool
+	Crawler      crawler.Crawler
+	AI           ai.Client
 }
 
 type handler struct {
 	store        store.Store
 	log          *slog.Logger
 	aiConfigured bool
+	crawler      crawler.Crawler
+	aiClient     ai.Client
+	httpClient   *http.Client
 }
 
 func NewRouter(opts Options) *gin.Engine {
@@ -34,7 +41,14 @@ func NewRouter(opts Options) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery(), requestID(), cors(), securityHeaders(), requestLogger(log))
 
-	h := &handler{store: opts.Store, log: log, aiConfigured: opts.AIConfigured}
+	h := &handler{
+		store:        opts.Store,
+		log:          log,
+		aiConfigured: opts.AIConfigured,
+		crawler:      opts.Crawler,
+		aiClient:     opts.AI,
+		httpClient:   &http.Client{Timeout: 5 * time.Second},
+	}
 	api := router.Group("/api")
 	api.GET("/health", h.health)
 	api.POST("/scans", h.createScan)
