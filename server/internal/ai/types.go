@@ -10,10 +10,10 @@ type ImageRequest struct {
 }
 
 type ImageResult struct {
-	Verdict      string
-	Reason       string
-	SuggestedAlt string
-	Confidence   float64
+	Verdict      string  `json:"verdict"`
+	Reason       string  `json:"reason"`
+	SuggestedAlt string  `json:"suggested_alt"`
+	Confidence   float64 `json:"confidence"`
 }
 
 type LinkRequest struct {
@@ -24,11 +24,11 @@ type LinkRequest struct {
 }
 
 type LinkResult struct {
-	Meaningful    bool
-	Matches       bool
-	Reason        string
-	SuggestedText string
-	Confidence    float64
+	Meaningful    bool    `json:"meaningful"`
+	Matches       bool    `json:"matches"`
+	Reason        string  `json:"reason"`
+	SuggestedText string  `json:"suggested_text"`
+	Confidence    float64 `json:"confidence"`
 }
 
 type Client interface {

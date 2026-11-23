@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"accessible-content/server/internal/ai"
 	"accessible-content/server/internal/crawler"
 	"accessible-content/server/internal/store"
 
@@ -17,6 +18,7 @@ type Options struct {
 	Log          *slog.Logger
 	AIConfigured bool
 	Crawler      crawler.Crawler
+	AI           ai.Client
 }
 
 type handler struct {
@@ -24,6 +26,7 @@ type handler struct {
 	log          *slog.Logger
 	aiConfigured bool
 	crawler      crawler.Crawler
+	aiClient     ai.Client
 	httpClient   *http.Client
 }
 
@@ -43,6 +46,7 @@ func NewRouter(opts Options) *gin.Engine {
 		log:          log,
 		aiConfigured: opts.AIConfigured,
 		crawler:      opts.Crawler,
+		aiClient:     opts.AI,
 		httpClient:   &http.Client{Timeout: 5 * time.Second},
 	}
 	api := router.Group("/api")

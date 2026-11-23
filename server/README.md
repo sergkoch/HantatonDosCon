@@ -22,6 +22,23 @@ go run ./cmd/api
 
 Без ключа API работает: формальные проверки доступны, семантика — «не проверено».
 
+## Миграции
+
+Схема и миграции — в `migrations/` (goose, встроены в бинарник командой `cmd/migrate`).
+
+```bash
+# поднять базу (Docker, порт 5432 проброшен на хост)
+docker compose -f deploy/docker-compose.yml up -d db
+
+# применить миграции
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/accessible?sslmode=disable"
+go run ./cmd/migrate up
+
+# статус / откат
+go run ./cmd/migrate status
+go run ./cmd/migrate down
+```
+
 ## Структура
 
 ```

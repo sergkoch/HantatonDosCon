@@ -28,6 +28,12 @@ var genericLinkText = map[string]struct{}{
 	"link":         {},
 }
 
+// IsGenericLinkText сообщает, является ли текст ссылки обобщённым («подробнее», «здесь» и т.п.).
+func IsGenericLinkText(text string) bool {
+	_, ok := genericLinkText[strings.ToLower(strings.TrimSpace(text))]
+	return ok
+}
+
 // LinkChecker проверяет текст ссылок (T13).
 type LinkChecker struct{}
 
