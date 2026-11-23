@@ -45,12 +45,6 @@
       : (scan?.findings.filter((finding) => finding.severity === filter) ?? []),
   );
 
-  function scoreColor(value: number): string {
-    if (value >= 80) return "#15803d";
-    if (value >= 50) return "#b45309";
-    return "#b91c1c";
-  }
-
   function downloadCsv(current: Scan) {
     const rows = [
       ["severity", "kind", "title", "element", "recommendation", "wcag"],
@@ -123,14 +117,19 @@
                 stroke-width="12"
               />
               <circle
-                class="score-ring__value"
+                class={`score-ring__value score-ring__value--${
+                  current.score >= 80
+                    ? "ok"
+                    : current.score >= 50
+                      ? "warning"
+                      : "critical"
+                }`}
                 cx="80"
                 cy="80"
                 r="68"
                 fill="none"
                 stroke-width="12"
                 stroke-linecap="round"
-                stroke={scoreColor(current.score)}
                 stroke-dasharray={circumference}
                 stroke-dashoffset={circumference * (1 - current.score / 100)}
               />
