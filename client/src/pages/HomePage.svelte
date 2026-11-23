@@ -28,8 +28,14 @@
 
 <div class="container">
   <section class="hero">
-    <p class="hero__eyebrow">Проверка доступности</p>
-    <h1 class="hero__title">Сайт, который понимают все</h1>
+    <div class="hero__badge">
+      <span class="hero__badge-dot" aria-hidden="true"></span>
+      Проверка доступности · WCAG
+    </div>
+
+    <h1 class="hero__title">
+      Сайт, который <span class="hero__title-accent">понимают</span> все
+    </h1>
     <p class="hero__lead">
       Проверьте изображения, PDF и ссылки. Найдите не только формальные ошибки, но
       и смысловые: описание не совпадает с картинкой, ссылка ведёт не туда.
@@ -77,13 +83,78 @@
     <h2 class="section__title" id="how-title">Что проверяем</h2>
     <div class="grid">
       <Card title="Изображения">
+        {#snippet icon()}
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect
+              x="3"
+              y="3"
+              width="18"
+              height="18"
+              rx="3"
+              stroke="currentColor"
+              stroke-width="1.8"
+            />
+            <circle cx="8.5" cy="8.5" r="1.6" fill="currentColor" />
+            <path
+              d="m21 15-5-5L5 21"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        {/snippet}
         Есть ли <code class="code">alt</code>, осмыслен ли он и совпадает ли с
         картинкой.
       </Card>
+
       <Card title="PDF">
+        {#snippet icon()}
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M14 3v5h5"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M8.5 13h7M8.5 17h4"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        {/snippet}
         Есть ли текстовый слой, теги структуры и альтернативная версия.
       </Card>
-      <Card title="Ссылки">Работают ли они и понятно ли, куда ведут.</Card>
+
+      <Card title="Ссылки">
+        {#snippet icon()}
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.41 1.41"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.41-1.41"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        {/snippet}
+        Работают ли они и понятно ли, куда ведут.
+      </Card>
     </div>
   </section>
 </div>
