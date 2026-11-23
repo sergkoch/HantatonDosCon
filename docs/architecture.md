@@ -6,7 +6,7 @@
 Браузер
   │ HTTPS
   ▼
-nginx ── React SPA (client/dist)
+nginx ── Svelte SPA (client/dist)
   │ /api/*
   ▼
 Go API (server)

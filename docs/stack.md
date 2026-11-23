@@ -13,7 +13,7 @@
 | ИИ | **HTTP-клиент на Go** | vision и текст через API, без SDK |
 | БД | **PostgreSQL + pgx + goose** | надёжно, миграции, без ORM-магии |
 | Отчёт | **maroto + encoding/csv** | PDF и CSV на чистом Go |
-| Интерфейс | **React + TypeScript + Vite** | браузер не умеет Go; React проще для команды |
+| Интерфейс | **Svelte 5 + TypeScript + Vite** | браузер не умеет Go; Svelte компактнее и проще |
 | Деплой | **Docker Compose + nginx** | один сервер, без Kubernetes |
 
 ## PDF без Python
@@ -71,11 +71,11 @@ type Client interface {
 
 Браузерная часть не может быть на Go. Варианты:
 
-- React + TypeScript + Vite — **выбран**;
-- SolidJS — тоже можно, но в шаблоне React;
+- Svelte 5 + TypeScript + Vite — **выбран**;
+- React — тоже можно, но в шаблоне Svelte;
 - Go-шаблоны + HTMX — можно, но меньше учебных материалов.
 
-Если команда уже знает Solid — меняется только папка `client`, API остаётся.
+Если команда решит сменить фреймворк — меняется только папка `client`, API остаётся.
 
 ## Что не берём
 
@@ -95,7 +95,7 @@ type Client interface {
 | Tesseract | Apache 2.0 | можно |
 | Gin | MIT | можно |
 | maroto | MIT | можно |
-| React | MIT | можно |
+| Svelte | MIT | можно |
 
 ## PDF-спайк на день 1
 

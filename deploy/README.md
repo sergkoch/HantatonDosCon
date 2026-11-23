@@ -12,7 +12,7 @@ docker compose -f deploy/docker-compose.yml up --build
 
 - `db` — PostgreSQL;
 - `api` — Go-сервис;
-- `web` — nginx + React.
+- `web` — nginx + Svelte.
 
 Наружу открыт только `web`.
 

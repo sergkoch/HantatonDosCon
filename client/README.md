@@ -21,13 +21,13 @@ bun run build
 
 ```
 src/
-  app.tsx?          нет, точка входа в main.tsx
-  App.tsx           маршруты
+  main.ts           точка входа
+  App.svelte        маршруты
   api.ts            запросы к API
   types.ts          типы данных
+  lib/              router, score, подписи
   components/       Layout, Button, Card, Badge
   pages/            Home, Scan, Report, NotFound
-  lib/              score, подписи
   styles.css        токены и стили
 ```
 
