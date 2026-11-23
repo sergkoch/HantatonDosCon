@@ -12,6 +12,7 @@ import (
 
 	"accessible-content/server/internal/api"
 	"accessible-content/server/internal/config"
+	"accessible-content/server/internal/crawler"
 	"accessible-content/server/internal/store"
 )
 
@@ -24,6 +25,7 @@ func main() {
 		Store:        memory,
 		Log:          log,
 		AIConfigured: cfg.AIKey != "",
+		Crawler:      crawler.New(crawler.Options{}),
 	})
 
 	server := &http.Server{

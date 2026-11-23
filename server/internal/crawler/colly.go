@@ -114,7 +114,8 @@ func (c *Colly) Crawl(ctx context.Context, startURL string, depth int) ([]Page, 
 			if src == "" {
 				return
 			}
-			page.Images = append(page.Images, Image{Src: src, Alt: el.Attr("alt")})
+			alt, hasAlt := el.DOM.Attr("alt")
+			page.Images = append(page.Images, Image{Src: src, Alt: alt, HasAlt: hasAlt})
 		})
 
 		e.ForEach("a[href]", func(_ int, el *colly.HTMLElement) {
