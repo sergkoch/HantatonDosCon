@@ -59,6 +59,9 @@
   --track: rgba(255, 255, 255, 0.1);
   --code-text: #c7d2e3;
 
+  --tactile: #ffd400;
+  --tactile-ink: #d9b400;
+
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 24px;
@@ -1082,5 +1085,77 @@ a:hover {
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;
+  }
+}
+
+/* ---------- Тактильные линии по бокам (полосы вдоль контура) ---------- */
+
+.tactile-lines {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  filter: drop-shadow(0 0 14px rgba(255, 212, 0, 0.35));
+}
+
+.tactile-lines polyline {
+  fill: none;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 30 2;
+}
+
+.tactile-dots {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.tactile-corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 4px;
+  background-color: var(--tactile);
+  background-image: radial-gradient(
+    circle 2.4px,
+    var(--tactile-ink) 99%,
+    transparent 100%
+  );
+  background-size: 8px 8px;
+  background-position: center;
+}
+
+.tl-base {
+  stroke: var(--tactile);
+  stroke-width: 40px;
+}
+
+.tl-mid {
+  stroke: var(--tactile-ink);
+  stroke-width: 28px;
+}
+
+.tl-core {
+  stroke: var(--tactile);
+  stroke-width: 16px;
+}
+
+.tl-dark {
+  stroke: var(--tactile-ink);
+  stroke-width: 6px;
+}
+
+@media (max-width: 1100px) {
+  .tactile-lines,
+  .tactile-dots {
+    display: none;
   }
 }

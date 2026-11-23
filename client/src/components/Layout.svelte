@@ -6,6 +6,13 @@
   let { children }: { children: Snippet } = $props();
 
   const theme = $derived(getTheme());
+
+  const tactilePaths = [
+    "0,12 9,12 9,26 3,26 3,34 0,34",
+    "0,58 8,58 8,68 0,68",
+    "100,15 91,15 91,29 97,29 97,37 100,37",
+    "100,62 92,62 92,72 100,72",
+  ];
 </script>
 
 <div class="site">
@@ -104,4 +111,33 @@
       <p>Учебный проект команды. Проверка доступности контента.</p>
     </div>
   </footer>
+
+  <svg
+    class="tactile-lines"
+    viewBox="0 0 100 100"
+    preserveAspectRatio="none"
+    aria-hidden="true"
+  >
+    {#each tactilePaths as points (points)}
+      <polyline class="tl-base" {points} />
+      <polyline class="tl-mid" {points} />
+      <polyline class="tl-core" {points} />
+      <polyline class="tl-dark" {points} />
+    {/each}
+  </svg>
+
+  <div class="tactile-dots" aria-hidden="true">
+    <span class="tactile-corner" style="left:9%; top:12%;"></span>
+    <span class="tactile-corner" style="left:9%; top:26%;"></span>
+    <span class="tactile-corner" style="left:3%; top:26%;"></span>
+    <span class="tactile-corner" style="left:3%; top:34%;"></span>
+    <span class="tactile-corner" style="left:8%; top:58%;"></span>
+    <span class="tactile-corner" style="left:8%; top:68%;"></span>
+    <span class="tactile-corner" style="left:91%; top:15%;"></span>
+    <span class="tactile-corner" style="left:91%; top:29%;"></span>
+    <span class="tactile-corner" style="left:97%; top:29%;"></span>
+    <span class="tactile-corner" style="left:97%; top:37%;"></span>
+    <span class="tactile-corner" style="left:92%; top:62%;"></span>
+    <span class="tactile-corner" style="left:92%; top:72%;"></span>
+  </div>
 </div>
