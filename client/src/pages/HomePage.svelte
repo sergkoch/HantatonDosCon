@@ -48,9 +48,6 @@
           bind:value={url}
           required
         />
-        <p class="field__hint" id="scan-hint">
-          Только http или https. Начните с главной страницы.
-        </p>
       </div>
 
       <div class="field field--small">
@@ -65,6 +62,10 @@
       <Button type="submit" disabled={busy}>
         {busy ? "Запускаем…" : "Проверить"}
       </Button>
+
+      <p class="field__hint" id="scan-hint">
+        Только http или https. Начните с главной страницы.
+      </p>
     </form>
 
     {#if error}
