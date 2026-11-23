@@ -218,6 +218,10 @@ a:hover {
   font-size: 0.875rem;
 }
 
+.form__hint {
+  grid-column: 1 / -1;
+}
+
 .field__error {
   margin-top: var(--space-3);
   color: var(--color-critical);
