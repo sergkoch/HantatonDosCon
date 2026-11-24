@@ -66,14 +66,34 @@
   "url": "https://example.ru",
   "depth": 2,
   "status": "done",
+  "version": 2,
+  "previousId": "9f8e7d6c-5b4a-4321-8765-fedcba987654",
   "score": 42,
   "pages": 3,
   "checkedLinks": 18,
   "unverifiedLinks": 0,
   "stats": { "critical": 2, "warning": 1, "ok": 1 },
+  "changes": {
+    "added": [],
+    "fixed": [
+      {
+        "id": "f2",
+        "code": "LINK_BROKEN",
+        "kind": "link",
+        "severity": "critical",
+        "title": "Битая ссылка",
+        "element": "<a href=\"/old\">old</a>",
+        "recommendation": "Исправьте адрес ссылки.",
+        "wcag": "2.4.4"
+      }
+    ],
+    "remaining": 2,
+    "scoreDelta": 12
+  },
   "findings": [
     {
       "id": "f1",
+      "code": "IMG_NO_ALT",
       "kind": "image",
       "severity": "critical",
       "title": "Нет alt у изображения",
@@ -85,6 +105,19 @@
   "createdAt": "2026-11-22T10:00:00Z"
 }
 ```
+
+`version` — номер проверки этого URL. Первая проверка получает `1`, каждая
+следующая — `+1`. `previousId` указывает на предыдущую завершённую проверку.
+
+`changes` сравнивает текущие находки с предыдущей проверкой по паре
+`code + element`:
+
+- `added` — новые находки;
+- `fixed` — находки, которых больше нет;
+- `remaining` — сколько находок осталось;
+- `scoreDelta` — изменение оценки относительно предыдущей проверки.
+
+Для первой проверки URL `changes` отсутствует.
 
 `status`:
 
@@ -113,6 +146,33 @@
 
 В отчёте: сайт, оценка, сводка, покрытие проверки и таблица находок
 с критичностью, типом, элементом, рекомендацией и ссылкой на WCAG.
+
+## GET /api/scans
+
+Журнал проверок, новые сверху.
+
+Параметры:
+
+- `url` — точный адрес сайта; без него возвращаются все проверки;
+- `limit` — от 1 до 100, по умолчанию 20.
+
+```json
+[
+  {
+    "id": "0f7f0f2e-6a0b-4a3e-9f4e-7d1b2c3d4e5f",
+    "url": "https://example.ru",
+    "status": "done",
+    "version": 2,
+    "score": 42,
+    "stats": { "critical": 2, "warning": 1, "ok": 1 },
+    "findings": [],
+    "createdAt": "2026-11-22T10:00:00Z"
+  }
+]
+```
+
+`findings` в списке может быть пустым: это краткая история, полный отчёт
+запрашивается через `GET /api/scans/{id}`.
 
 ## Ошибки
 

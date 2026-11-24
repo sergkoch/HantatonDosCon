@@ -10,6 +10,7 @@ export type FindingKind =
 
 export type Finding = {
   id: string;
+  code?: string;
   kind: FindingKind;
   severity: Severity;
   title: string;
@@ -26,17 +27,27 @@ export type ScanStats = {
 
 export type ScanStatus = "queued" | "running" | "done" | "failed";
 
+export type Changes = {
+  added: Finding[];
+  fixed: Finding[];
+  remaining: number;
+  scoreDelta?: number;
+};
+
 export type Scan = {
   id: string;
   url: string;
   depth: number;
   status: ScanStatus;
+  version: number;
+  previousId?: string;
   score: number | null;
   pages: number;
   checkedLinks?: number;
   unverifiedLinks?: number;
   error?: string;
   stats: ScanStats;
+  changes?: Changes;
   findings: Finding[];
   createdAt: string;
 };

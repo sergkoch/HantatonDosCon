@@ -45,9 +45,19 @@ func main() {
 		defer pdfInstance.Close()
 	}
 
-	memory := store.NewMemory()
+	var scanStore store.Store = store.NewMemory()
+	if cfg.DatabaseURL != "" {
+		pgStore, storeErr := store.NewPostgres(context.Background(), cfg.DatabaseURL)
+		if storeErr != nil {
+			log.Warn("postgres unavailable, using memory store", "error", storeErr)
+		} else {
+			scanStore = pgStore
+			defer pgStore.Close()
+		}
+	}
+
 	handler := api.NewRouter(api.Options{
-		Store:        memory,
+		Store:        scanStore,
 		Log:          log,
 		AIConfigured: cfg.AIKey != "",
 		Crawler:      crawler.New(crawler.Options{HTTPClient: scannerClient}),

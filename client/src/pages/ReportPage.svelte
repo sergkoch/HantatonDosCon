@@ -2,6 +2,7 @@
   import { getScan } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
+  import { navigate } from "../lib/router.svelte";
   import { kindLabel, scoreLabel } from "../lib/score";
   import type { Scan, Severity } from "../types";
 
@@ -85,10 +86,22 @@
     <section class="section" aria-labelledby="report-title">
       <div class="report-head">
         <div class="report-head__main">
-          <p class="hero__eyebrow">Отчёт</p>
+          <p class="hero__eyebrow">Отчёт · проверка v{current.version}</p>
           <h1 class="report-head__title" id="report-title">{current.url}</h1>
           <p class="status">
             Находок: {current.findings.length} · {scoreLabel(current.score)}
+            {#if current.previousId}
+              ·
+              <a
+                href={`/report/${current.previousId}`}
+                onclick={(event) => {
+                  event.preventDefault();
+                  navigate(`/report/${current.previousId}`);
+                }}
+              >
+                предыдущая проверка
+              </a>
+            {/if}
           </p>
           <div class="report-head__stats">
             <span class="badge badge--critical">
@@ -151,6 +164,71 @@
           </div>
         {/if}
       </div>
+
+      <section class="section" aria-labelledby="changes-title">
+        <h2 class="section__title" id="changes-title">
+          Что изменилось с прошлой проверки
+        </h2>
+
+        {#if current.changes}
+          <div class="report-head__stats">
+            <span
+              class={`badge ${current.changes.added.length > 0 ? "badge--critical" : "badge--ok"}`}
+            >
+              {current.changes.added.length} новых
+            </span>
+            <span
+              class={`badge ${current.changes.fixed.length > 0 ? "badge--ok" : ""}`.trim()}
+            >
+              {current.changes.fixed.length} исправлено
+            </span>
+            <span class="badge">
+              {current.changes.remaining} осталось
+            </span>
+            {#if current.changes.scoreDelta !== undefined}
+              <span class="badge">
+                {current.changes.scoreDelta >= 0 ? "+" : ""}{current.changes.scoreDelta}
+                к оценке
+              </span>
+            {/if}
+          </div>
+
+          {#if current.changes.added.length > 0}
+            <h3>Новые проблемы</h3>
+            <ul class="links">
+              {#each current.changes.added as finding (finding.id)}
+                <li>
+                  <Badge severity={finding.severity} />
+                  {finding.title}
+                </li>
+              {/each}
+            </ul>
+          {/if}
+
+          {#if current.changes.fixed.length > 0}
+            <h3>Исправлено</h3>
+            <ul class="links">
+              {#each current.changes.fixed as finding (finding.id)}
+                <li>
+                  <Badge severity={finding.severity} />
+                  {finding.title}
+                </li>
+              {/each}
+            </ul>
+          {/if}
+
+          {#if current.changes.added.length === 0 && current.changes.fixed.length === 0}
+            <p class="status">
+              Новых проблем нет, исправлений тоже нет — состав находок не изменился.
+            </p>
+          {/if}
+        {:else}
+          <p class="status">
+            Это первая проверка этого адреса. Следующая проверка покажет, что
+            изменилось.
+          </p>
+        {/if}
+      </section>
 
       <fieldset class="filters">
         <legend class="visually-hidden">Фильтр по критичности</legend>

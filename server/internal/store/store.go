@@ -27,6 +27,7 @@ const (
 
 type Finding struct {
 	ID             string   `json:"id"`
+	Code           string   `json:"code,omitempty"`
 	Kind           string   `json:"kind"`
 	Severity       Severity `json:"severity"`
 	Title          string   `json:"title"`
@@ -41,17 +42,28 @@ type Stats struct {
 	OK       int `json:"ok"`
 }
 
+// Changes describes the difference between two scans of the same URL.
+type Changes struct {
+	Added      []Finding `json:"added"`
+	Fixed      []Finding `json:"fixed"`
+	Remaining  int       `json:"remaining"`
+	ScoreDelta *int      `json:"scoreDelta,omitempty"`
+}
+
 type Scan struct {
 	ID              string    `json:"id"`
 	URL             string    `json:"url"`
 	Depth           int       `json:"depth"`
 	Status          Status    `json:"status"`
+	Version         int       `json:"version"`
+	PreviousID      string    `json:"previousId,omitempty"`
 	Score           *int      `json:"score"`
 	Pages           int       `json:"pages"`
 	CheckedLinks    int       `json:"checkedLinks"`
 	UnverifiedLinks int       `json:"unverifiedLinks"`
 	Error           string    `json:"error,omitempty"`
 	Stats           Stats     `json:"stats"`
+	Changes         *Changes  `json:"changes,omitempty"`
 	Findings        []Finding `json:"findings"`
 	CreatedAt       time.Time `json:"createdAt"`
 }
@@ -60,4 +72,8 @@ type Store interface {
 	Create(ctx context.Context, scan Scan) error
 	Get(ctx context.Context, id string) (Scan, error)
 	Update(ctx context.Context, scan Scan) error
+	// List returns scans, newest first. An empty targetURL means all URLs.
+	List(ctx context.Context, targetURL string, limit int) ([]Scan, error)
+	// LatestDone returns the most recent completed scan for a URL.
+	LatestDone(ctx context.Context, targetURL string) (Scan, error)
 }
