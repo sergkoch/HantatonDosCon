@@ -1,0 +1,4 @@
+not-domain.ru {
+	encode gzip
+	reverse_proxy web:80
+}
