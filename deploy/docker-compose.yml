@@ -39,6 +39,8 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-}
       AI_VISION_MODEL: ${AI_VISION_MODEL:-}
+      SCAN_ALLOWED_HOSTS: ${SCAN_ALLOWED_HOSTS:-demo}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
     depends_on:
       db:
         condition: service_healthy

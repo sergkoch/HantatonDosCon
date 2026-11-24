@@ -1,9 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -47,6 +49,11 @@ type createScanRequest struct {
 func (h *handler) createScan(c *gin.Context) {
 	var request createScanRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "invalid_input", "detail": "request body too large"})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": err.Error()})
 		return
 	}
@@ -55,6 +62,16 @@ func (h *handler) createScan(c *gin.Context) {
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": "url must be http or https"})
 		return
+	}
+
+	if h.policy != nil {
+		validateCtx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+		validateErr := h.policy.ValidateURL(validateCtx, parsed.String())
+		cancel()
+		if validateErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": "url must be public"})
+			return
+		}
 	}
 
 	if request.Depth == 0 {
@@ -152,6 +169,8 @@ func (h *handler) runScan(initial store.Scan) {
 		links = append(links, page.PDFs...)
 	}
 
+	checkFindings = append(checkFindings, h.checkPDFs(ctx, pages)...)
+
 	if h.aiClient != nil {
 		h.runAILinkChecks(ctx, pages, &checkFindings)
 	}
@@ -172,6 +191,139 @@ func (h *handler) runScan(initial store.Scan) {
 	if err := h.store.Update(ctx, scan); err != nil {
 		h.log.Error("update finished scan", "error", err)
 	}
+}
+
+const (
+	maxPDFsPerScan = 10
+	maxPDFSize     = 20 << 20
+)
+
+func (h *handler) checkPDFs(ctx context.Context, pages []crawler.Page) []checks.Finding {
+	if h.pdfAnalyzer == nil {
+		return nil
+	}
+
+	findings := make([]checks.Finding, 0)
+	seen := make(map[string]struct{})
+
+	for _, page := range pages {
+		for _, link := range page.PDFs {
+			if len(seen) >= maxPDFsPerScan {
+				return findings
+			}
+			if _, ok := seen[link.Href]; ok {
+				continue
+			}
+			seen[link.Href] = struct{}{}
+			findings = append(findings, h.checkPDF(ctx, link)...)
+		}
+	}
+
+	return findings
+}
+
+func (h *handler) checkPDF(ctx context.Context, link crawler.Link) []checks.Finding {
+	requestCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(requestCtx, http.MethodGet, link.Href, nil)
+	if err != nil {
+		return nil
+	}
+
+	response, err := h.pdfClient.Do(request)
+	if err != nil {
+		h.log.Warn("pdf download failed", "href", link.Href, "error", err)
+		return nil
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	data, err := io.ReadAll(io.LimitReader(response.Body, maxPDFSize+1))
+	if err != nil {
+		h.log.Warn("pdf read failed", "href", link.Href, "error", err)
+		return nil
+	}
+	if len(data) == 0 || len(data) > maxPDFSize {
+		h.log.Warn("pdf skipped", "href", link.Href, "size", len(data))
+		return nil
+	}
+
+	result, err := h.pdfAnalyzer.Analyze(requestCtx, bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		h.log.Warn("pdf analysis failed", "href", link.Href, "error", err)
+		return nil
+	}
+
+	element := fmt.Sprintf(`<a href="%s">%s</a>`, link.Href, link.Text)
+	findings := make([]checks.Finding, 0, 5)
+
+	if !result.TextLayer {
+		findings = append(findings, checks.Finding{
+			Code:           "PDF_NO_TEXT",
+			Severity:       "critical",
+			Title:          "PDF без текстового слоя",
+			Element:        element,
+			Recommendation: "Опубликуйте PDF с текстовым слоем или HTML-версию: сканы без текста плохо читаются скринридером.",
+			WCAG:           "1.3.1",
+		})
+	}
+
+	if !result.Tagged {
+		findings = append(findings, checks.Finding{
+			Code:           "PDF_NOT_TAGGED",
+			Severity:       "warning",
+			Title:          "PDF без тегов структуры",
+			Element:        element,
+			Recommendation: "Пересохраните PDF с включённой разметкой структуры (Tagged PDF), чтобы скринридер понимал порядок чтения.",
+			WCAG:           "1.3.1",
+		})
+	} else if result.AltTexts == 0 {
+		findings = append(findings, checks.Finding{
+			Code:           "PDF_ALT_MISSING",
+			Severity:       "warning",
+			Title:          "В PDF не найден /Alt",
+			Element:        element,
+			Recommendation: "Добавьте /Alt к смысловым изображениям и схемам в PDF.",
+			WCAG:           "1.1.1",
+		})
+	} else {
+		findings = append(findings, checks.Finding{
+			Code:           "PDF_ALT_OK",
+			Severity:       "ok",
+			Title:          "В PDF есть теги и /Alt",
+			Element:        element,
+			Recommendation: "Ничего не нужно: структура и альтернативный текст на месте.",
+			WCAG:           "1.1.1",
+		})
+	}
+
+	if result.Title == "" {
+		findings = append(findings, checks.Finding{
+			Code:           "PDF_TITLE_MISSING",
+			Severity:       "warning",
+			Title:          "PDF без заголовка",
+			Element:        element,
+			Recommendation: "Заполните Title в свойствах документа: он показывается во вкладке и в списке файлов.",
+			WCAG:           "2.4.2",
+		})
+	}
+
+	if result.Lang == "" {
+		findings = append(findings, checks.Finding{
+			Code:           "PDF_LANG_MISSING",
+			Severity:       "warning",
+			Title:          "PDF без языка документа",
+			Element:        element,
+			Recommendation: "Укажите язык документа в свойствах PDF, чтобы скринридер выбрал правильное произношение.",
+			WCAG:           "3.1.1",
+		})
+	}
+
+	return findings
 }
 
 func (h *handler) runAILinkChecks(ctx context.Context, pages []crawler.Page, findings *[]checks.Finding) {
