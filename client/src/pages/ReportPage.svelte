@@ -282,6 +282,13 @@
         <Button type="button" onclick={() => downloadCsv(current)}>
           Скачать CSV
         </Button>
+        <a
+          class="button button--primary"
+          href={`/api/scans/${current.id}/pdf`}
+          download
+        >
+          Скачать PDF
+        </a>
       </div>
     </section>
   </div>

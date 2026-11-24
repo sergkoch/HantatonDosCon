@@ -79,6 +79,7 @@ func NewRouter(opts Options) *gin.Engine {
 	api.POST("/scans", limitBody(maxRequestBodyBytes), rateLimit(limiter), h.createScan)
 	api.GET("/scans", h.listScans)
 	api.GET("/scans/:id", h.getScan)
+	api.GET("/scans/:id/pdf", h.downloadPDF)
 
 	return router
 }
