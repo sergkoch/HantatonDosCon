@@ -14,6 +14,7 @@ import (
 	"accessible-content/server/internal/api"
 	"accessible-content/server/internal/config"
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/pdf"
 	"accessible-content/server/internal/store"
 )
 
@@ -31,6 +32,15 @@ func main() {
 		})
 	}
 
+	var pdfAnalyzer pdf.Analyzer
+	pdfInstance, err := pdf.NewAnalyzer()
+	if err != nil {
+		log.Warn("pdf analyzer disabled", "error", err)
+	} else {
+		pdfAnalyzer = pdfInstance
+		defer pdfInstance.Close()
+	}
+
 	memory := store.NewMemory()
 	handler := api.NewRouter(api.Options{
 		Store:        memory,
@@ -38,6 +48,7 @@ func main() {
 		AIConfigured: cfg.AIKey != "",
 		Crawler:      crawler.New(crawler.Options{}),
 		AI:           aiClient,
+		PDF:          pdfAnalyzer,
 	})
 
 	server := &http.Server{

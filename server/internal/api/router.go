@@ -7,6 +7,7 @@ import (
 
 	"accessible-content/server/internal/ai"
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/pdf"
 	"accessible-content/server/internal/store"
 
 	"github.com/gin-gonic/gin"
@@ -19,6 +20,7 @@ type Options struct {
 	AIConfigured bool
 	Crawler      crawler.Crawler
 	AI           ai.Client
+	PDF          pdf.Analyzer
 }
 
 type handler struct {
@@ -27,7 +29,9 @@ type handler struct {
 	aiConfigured bool
 	crawler      crawler.Crawler
 	aiClient     ai.Client
+	pdfAnalyzer  pdf.Analyzer
 	httpClient   *http.Client
+	pdfClient    *http.Client
 }
 
 func NewRouter(opts Options) *gin.Engine {
@@ -47,7 +51,9 @@ func NewRouter(opts Options) *gin.Engine {
 		aiConfigured: opts.AIConfigured,
 		crawler:      opts.Crawler,
 		aiClient:     opts.AI,
+		pdfAnalyzer:  opts.PDF,
 		httpClient:   &http.Client{Timeout: 5 * time.Second},
+		pdfClient:    &http.Client{Timeout: 30 * time.Second},
 	}
 	api := router.Group("/api")
 	api.GET("/health", h.health)
