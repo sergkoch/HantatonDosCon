@@ -14,6 +14,7 @@ import (
 	"accessible-content/server/internal/ai"
 	"accessible-content/server/internal/checks"
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/report"
 	"accessible-content/server/internal/store"
 
 	"github.com/gin-gonic/gin"
@@ -115,6 +116,32 @@ func (h *handler) getScan(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, scan)
+}
+
+func (h *handler) reportPDF(c *gin.Context) {
+	scan, err := h.store.Get(c.Request.Context(), c.Param("id"))
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		return
+	}
+	if scan.Status != store.StatusDone {
+		c.JSON(http.StatusConflict, gin.H{"error": "scan_not_ready", "detail": "report is available only for completed scans"})
+		return
+	}
+
+	data, err := report.BuildPDF(scan)
+	if err != nil {
+		h.log.Error("build pdf report", "id", scan.ID, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "report_error"})
+		return
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="report-%s.pdf"`, scan.ID))
+	c.Data(http.StatusOK, "application/pdf", data)
 }
 
 func (h *handler) runScan(initial store.Scan) {

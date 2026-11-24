@@ -201,7 +201,14 @@
       {/if}
 
       <div class="actions">
-        <Button type="button" onclick={() => downloadCsv(current)}>
+        <a
+          class="button button--primary"
+          href={`/api/scans/${current.id}/report.pdf`}
+          download
+        >
+          Скачать PDF
+        </a>
+        <Button variant="ghost" type="button" onclick={() => downloadCsv(current)}>
           Скачать CSV
         </Button>
       </div>

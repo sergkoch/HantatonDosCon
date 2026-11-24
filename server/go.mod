@@ -1,6 +1,6 @@
 module accessible-content/server
 
-go 1.26.0
+go 1.26.1
 
 require (
 	github.com/gin-gonic/gin v1.10.0
@@ -20,6 +20,7 @@ require (
 	github.com/antchfx/xmlquery v1.5.0 // indirect
 	github.com/antchfx/xpath v1.3.5 // indirect
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect
+	github.com/boombuler/barcode v1.1.0 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
@@ -38,6 +39,8 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.3 // indirect
+	github.com/johnfercher/go-tree v1.1.0 // indirect
+	github.com/johnfercher/maroto/v2 v2.4.4 // indirect
 	github.com/jolestar/go-commons-pool/v2 v2.1.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
@@ -51,6 +54,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nlnwa/whatwg-url v0.6.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
+	github.com/phpdave11/gofpdf v1.4.3 // indirect
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sethvargo/go-retry v0.5.0 // indirect
@@ -62,7 +66,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/image v0.47.0 // indirect
+	golang.org/x/image v0.48.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect

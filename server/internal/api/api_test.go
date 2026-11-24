@@ -1,12 +1,15 @@
 package api
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"accessible-content/server/internal/store"
 
@@ -93,5 +96,36 @@ func TestScanNotFound(t *testing.T) {
 
 	if recorder.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", recorder.Code)
+	}
+}
+
+func TestReportPDF(t *testing.T) {
+	memory := store.NewMemory()
+	router := NewRouter(Options{Store: memory, Log: slog.Default()})
+
+	score := 100
+	scan := store.Scan{
+		ID:        "scan-1",
+		URL:       "https://example.com",
+		Status:    store.StatusDone,
+		Score:     &score,
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := memory.Create(context.Background(), scan); err != nil {
+		t.Fatalf("create scan: %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/scans/scan-1/report.pdf", nil)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if got := recorder.Header().Get("Content-Type"); got != "application/pdf" {
+		t.Fatalf("expected application/pdf, got %q", got)
+	}
+	if !bytes.HasPrefix(recorder.Body.Bytes(), []byte("%PDF")) {
+		t.Fatal("response is not a PDF")
 	}
 }
