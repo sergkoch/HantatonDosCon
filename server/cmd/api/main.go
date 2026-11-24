@@ -14,6 +14,7 @@ import (
 	"accessible-content/server/internal/api"
 	"accessible-content/server/internal/config"
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/safehttp"
 	"accessible-content/server/internal/store"
 )
 
@@ -31,13 +32,19 @@ func main() {
 		})
 	}
 
+	policy := safehttp.NewPolicy(cfg.AllowedHosts)
+	scannerClient := safehttp.NewClient(policy, 30*time.Second)
+
 	memory := store.NewMemory()
 	handler := api.NewRouter(api.Options{
 		Store:        memory,
 		Log:          log,
 		AIConfigured: cfg.AIKey != "",
-		Crawler:      crawler.New(crawler.Options{}),
+		Crawler:      crawler.New(crawler.Options{HTTPClient: scannerClient}),
 		AI:           aiClient,
+		Policy:       policy,
+		HTTPClient:   scannerClient,
+		RateLimit:    cfg.RateLimitPerMinute,
 	})
 
 	server := &http.Server{

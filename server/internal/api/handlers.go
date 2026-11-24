@@ -47,6 +47,11 @@ type createScanRequest struct {
 func (h *handler) createScan(c *gin.Context) {
 	var request createScanRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "invalid_input", "detail": "request body too large"})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": err.Error()})
 		return
 	}
@@ -55,6 +60,16 @@ func (h *handler) createScan(c *gin.Context) {
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": "url must be http or https"})
 		return
+	}
+
+	if h.policy != nil {
+		validateCtx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+		validateErr := h.policy.ValidateURL(validateCtx, parsed.String())
+		cancel()
+		if validateErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": "url must be public"})
+			return
+		}
 	}
 
 	if request.Depth == 0 {
