@@ -58,8 +58,16 @@ export function toggleTheme(event?: MouseEvent): void {
     await tick();
   });
 
-  const x = event?.clientX ?? window.innerWidth - 48;
-  const y = event?.clientY ?? 48;
+  const target = event?.currentTarget;
+  const rect =
+    target instanceof Element ? target.getBoundingClientRect() : null;
+
+  const x = rect
+    ? rect.left + rect.width / 2
+    : (event?.clientX ?? window.innerWidth - 48);
+  const y = rect
+    ? rect.top + rect.height / 2
+    : (event?.clientY ?? 48);
 
   transition.ready
     .then(() => {
@@ -74,10 +82,11 @@ export function toggleTheme(event?: MouseEvent): void {
             `circle(0px at ${x}px ${y}px)`,
             `circle(${radius}px at ${x}px ${y}px)`,
           ],
+          opacity: [0.6, 1],
         },
         {
-          duration: 550,
-          easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+          duration: 1200,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
           pseudoElement: "::view-transition-new(root)",
         },
       );

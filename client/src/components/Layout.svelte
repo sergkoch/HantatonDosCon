@@ -8,10 +8,10 @@
   const theme = $derived(getTheme());
 
   const tactilePaths = [
-    "0,12 9,12 9,26 3,26 3,34 0,34",
-    "0,58 8,58 8,68 0,68",
-    "100,15 91,15 91,29 97,29 97,37 100,37",
-    "100,62 92,62 92,72 100,72",
+    "0,10 9,10 9,24 3,24 3,33 0,33",
+    "0,56 7,56 7,66 0,66",
+    "100,12 91,12 91,23 96,23 96,35 100,35",
+    "100,44 94,44 94,62 100,62",
   ];
 </script>
 
@@ -127,17 +127,17 @@
   </svg>
 
   <div class="tactile-dots" aria-hidden="true">
-    <span class="tactile-corner" style="left:9%; top:12%;"></span>
-    <span class="tactile-corner" style="left:9%; top:26%;"></span>
-    <span class="tactile-corner" style="left:3%; top:26%;"></span>
-    <span class="tactile-corner" style="left:3%; top:34%;"></span>
-    <span class="tactile-corner" style="left:8%; top:58%;"></span>
-    <span class="tactile-corner" style="left:8%; top:68%;"></span>
-    <span class="tactile-corner" style="left:91%; top:15%;"></span>
-    <span class="tactile-corner" style="left:91%; top:29%;"></span>
-    <span class="tactile-corner" style="left:97%; top:29%;"></span>
-    <span class="tactile-corner" style="left:97%; top:37%;"></span>
-    <span class="tactile-corner" style="left:92%; top:62%;"></span>
-    <span class="tactile-corner" style="left:92%; top:72%;"></span>
+    <span class="tactile-corner" style="left:9%; top:10%;"></span>
+    <span class="tactile-corner" style="left:9%; top:24%;"></span>
+    <span class="tactile-corner" style="left:3%; top:24%;"></span>
+    <span class="tactile-corner" style="left:3%; top:33%;"></span>
+    <span class="tactile-corner" style="left:7%; top:56%;"></span>
+    <span class="tactile-corner" style="left:7%; top:66%;"></span>
+    <span class="tactile-corner" style="left:91%; top:12%;"></span>
+    <span class="tactile-corner" style="left:91%; top:23%;"></span>
+    <span class="tactile-corner" style="left:96%; top:23%;"></span>
+    <span class="tactile-corner" style="left:96%; top:35%;"></span>
+    <span class="tactile-corner" style="left:94%; top:44%;"></span>
+    <span class="tactile-corner" style="left:94%; top:62%;"></span>
   </div>
 </div>
