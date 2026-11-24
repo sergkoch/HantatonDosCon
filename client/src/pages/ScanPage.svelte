@@ -48,6 +48,15 @@
         ? (scan?.error ?? "Проверка не удалась")
         : "Проверяем страницы и медиа…",
   );
+
+  $effect(() => {
+    if (!done || !scan) return;
+
+    const scanID = scan.id;
+    const timer = setTimeout(() => navigate(`/report/${scanID}`), 500);
+
+    return () => clearTimeout(timer);
+  });
 </script>
 
 {#if error}
@@ -114,19 +123,6 @@
         </div>
 
         <p class="status">{scoreLabel(current.score)}</p>
-
-        {#if done}
-          <a
-            class="button button--primary"
-            href={`/report/${current.id}`}
-            onclick={(event) => {
-              event.preventDefault();
-              navigate(`/report/${current.id}`);
-            }}
-          >
-            Открыть отчёт
-          </a>
-        {/if}
       {/if}
 
       {#if failed}
