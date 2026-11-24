@@ -30,7 +30,7 @@
   --header-bg: rgba(7, 8, 12, 0.7);
   --surface-solid: #10131c;
   --input-bg: rgba(3, 5, 10, 0.55);
-  --placeholder: #6b7688;
+  --placeholder: #9aa6ba;
   --grid-line: rgba(255, 255, 255, 0.022);
   --field-teal: rgba(34, 211, 238, 0.22);
   --field-warm: rgba(255, 212, 0, 0.16);
@@ -97,28 +97,28 @@
   color-scheme: light;
 
   --bg: #f5f8fd;
-  --panel: rgba(15, 23, 42, 0.03);
-  --surface: rgba(15, 23, 42, 0.035);
-  --surface-2: rgba(15, 23, 42, 0.06);
+  --panel: rgba(15, 23, 42, 0.045);
+  --surface: rgba(15, 23, 42, 0.05);
+  --surface-2: rgba(15, 23, 42, 0.08);
   --glass: linear-gradient(180deg, #ffffff, #f7faff);
   --glass-strong: linear-gradient(180deg, #ffffff, #f1f6ff);
 
-  --text: #1e293b;
-  --text-strong: #0b1220;
-  --muted: #52627a;
+  --text: #0b1220;
+  --text-strong: #000000;
+  --muted: #111827;
 
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --border: #cbd5e1;
+  --border-strong: #94a3b8;
 
-  --header-bg: rgba(255, 255, 255, 0.78);
+  --header-bg: rgba(255, 255, 255, 0.82);
   --surface-solid: #ffffff;
   --input-bg: #ffffff;
-  --placeholder: #94a3b8;
-  --grid-line: rgba(15, 23, 42, 0.04);
+  --placeholder: #111827;
+  --grid-line: rgba(15, 23, 42, 0.06);
   --field-teal: rgba(14, 165, 233, 0.13);
   --field-warm: rgba(255, 196, 0, 0.16);
   --field-violet: rgba(99, 102, 241, 0.06);
-  --dot: rgba(15, 23, 42, 0.08);
+  --dot: rgba(15, 23, 42, 0.12);
   --vignette: rgba(15, 23, 42, 0.05);
   --grain-opacity: 0.04;
 
@@ -143,8 +143,8 @@
   --ok-border: rgba(21, 128, 61, 0.22);
 
   --focus: #0284c7;
-  --track: #e2e8f0;
-  --code-text: #334155;
+  --track: #cbd5e1;
+  --code-text: #0b1220;
 
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow: 0 24px 50px -30px rgba(15, 23, 42, 0.28);
@@ -1157,6 +1157,18 @@ a:hover {
   margin-top: var(--space-1);
   color: var(--muted);
   font-size: 0.875rem;
+}
+
+/* Вторичный текст: как «Проверить» / «Как это работает» — та же гарнитура, цвет и насыщенность */
+.hero__lead,
+.field__hint,
+.how-step__text,
+.card__body,
+.status,
+.muted,
+.report-coverage,
+.empty {
+  font-weight: 500;
 }
 
 .badge {
