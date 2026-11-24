@@ -42,14 +42,18 @@ type Stats struct {
 }
 
 type Scan struct {
-	ID        string    `json:"id"`
-	URL       string    `json:"url"`
-	Depth     int       `json:"depth"`
-	Status    Status    `json:"status"`
-	Score     *int      `json:"score"`
-	Stats     Stats     `json:"stats"`
-	Findings  []Finding `json:"findings"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID              string    `json:"id"`
+	URL             string    `json:"url"`
+	Depth           int       `json:"depth"`
+	Status          Status    `json:"status"`
+	Score           *int      `json:"score"`
+	Pages           int       `json:"pages"`
+	CheckedLinks    int       `json:"checkedLinks"`
+	UnverifiedLinks int       `json:"unverifiedLinks"`
+	Error           string    `json:"error,omitempty"`
+	Stats           Stats     `json:"stats"`
+	Findings        []Finding `json:"findings"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type Store interface {

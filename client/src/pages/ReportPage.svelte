@@ -2,7 +2,7 @@
   import { getScan } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
-  import { kindLabel } from "../lib/score";
+  import { kindLabel, scoreLabel } from "../lib/score";
   import type { Scan, Severity } from "../types";
 
   let { id }: { id: string } = $props();
@@ -10,6 +10,8 @@
   let scan = $state<Scan | null>(null);
   let error = $state("");
   let filter = $state<"all" | Severity>("all");
+
+  const circumference = 2 * Math.PI * 68;
 
   $effect(() => {
     let active = true;
@@ -81,11 +83,74 @@
   {@const current = scan}
   <div class="container">
     <section class="section" aria-labelledby="report-title">
-      <p class="hero__eyebrow">Отчёт</p>
-      <h1 class="section__title" id="report-title">{scan.url}</h1>
-      <p class="status">
-        Оценка: {scan.score ?? "—"} · находок: {scan.findings.length}
-      </p>
+      <div class="report-head">
+        <div class="report-head__main">
+          <p class="hero__eyebrow">Отчёт</p>
+          <h1 class="report-head__title" id="report-title">{current.url}</h1>
+          <p class="status">
+            Находок: {current.findings.length} · {scoreLabel(current.score)}
+          </p>
+          <div class="report-head__stats">
+            <span class="badge badge--critical">
+              {current.stats.critical} критично
+            </span>
+            <span class="badge badge--warning">
+              {current.stats.warning} предупр.
+            </span>
+            <span class="badge badge--ok">{current.stats.ok} в порядке</span>
+          </div>
+          <p class="report-coverage">
+            Проверено страниц: {current.pages ?? 0}.
+            {#if current.checkedLinks}
+              Ссылок проверено: {current.checkedLinks}, не удалось проверить:
+              {current.unverifiedLinks ?? 0}.
+            {/if}
+            Оценка учитывает alt, текст и доступность ссылок, подписи полей,
+            заголовки и таблицы. PDF, контраст, клавиатура и ARIA не
+            проверяются.
+          </p>
+        </div>
+
+        {#if current.score !== null}
+          <div
+            class="score-ring"
+            role="img"
+            aria-label={`Оценка ${current.score} из 100`}
+          >
+            <svg viewBox="0 0 160 160" width="160" height="160" aria-hidden="true">
+              <circle
+                class="score-ring__track"
+                cx="80"
+                cy="80"
+                r="68"
+                fill="none"
+                stroke-width="12"
+              />
+              <circle
+                class={`score-ring__value score-ring__value--${
+                  current.score >= 80
+                    ? "ok"
+                    : current.score >= 50
+                      ? "warning"
+                      : "critical"
+                }`}
+                cx="80"
+                cy="80"
+                r="68"
+                fill="none"
+                stroke-width="12"
+                stroke-linecap="round"
+                stroke-dasharray={circumference}
+                stroke-dashoffset={circumference * (1 - current.score / 100)}
+              />
+            </svg>
+            <div class="score-ring__center">
+              <span class="score-ring__num">{current.score}</span>
+              <span class="score-ring__label">из 100</span>
+            </div>
+          </div>
+        {/if}
+      </div>
 
       <fieldset class="filters">
         <legend class="visually-hidden">Фильтр по критичности</legend>
@@ -144,6 +209,11 @@
   </div>
 {:else}
   <div class="container">
+    <div class="scan-visual" aria-hidden="true">
+      <span class="scan-visual__pulse"></span>
+      <span class="scan-visual__pulse"></span>
+      <span class="scan-visual__pulse"></span>
+    </div>
     <p class="status" aria-live="polite">Загружаем отчёт…</p>
   </div>
 {/if}

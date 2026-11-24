@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"unicode/utf8"
 
 	"accessible-content/server/internal/crawler"
 )
@@ -49,15 +50,17 @@ func (AltChecker) Check(page crawler.Page) []Finding {
 				Recommendation: "Добавьте описание, что на картинке. Если она декоративная — alt=\"\" и role=\"presentation\".",
 				WCAG:           "1.1.1",
 			})
-		case alt == "":
+		case alt == "" && img.InLink && strings.TrimSpace(img.LinkText) == "":
 			findings = append(findings, Finding{
-				Code:           "IMG_ALT_EMPTY",
+				Code:           "IMG_ALT_EMPTY_LINK",
 				Severity:       "critical",
-				Title:          "Пустой alt у изображения",
-				Element:        fmt.Sprintf(`<img src="%s" alt="">`, img.Src),
-				Recommendation: "Добавьте описание картинки или отметьте её декоративной через role=\"presentation\".",
+				Title:          "Изображение-ссылка без текстовой альтернативы",
+				Element:        fmt.Sprintf(`<a><img src="%s" alt=""></a>`, img.Src),
+				Recommendation: "Добавьте alt, который объясняет, куда ведёт ссылка, или текстовую подпись рядом с картинкой.",
 				WCAG:           "1.1.1",
 			})
+		case alt == "":
+			// Пустой alt — корректный способ пометить декоративное изображение.
 		case isGenericAlt(alt):
 			findings = append(findings, Finding{
 				Code:           "IMG_ALT_GENERIC",
@@ -65,6 +68,15 @@ func (AltChecker) Check(page crawler.Page) []Finding {
 				Title:          "alt не описывает изображение",
 				Element:        fmt.Sprintf(`<img src="%s" alt="%s">`, img.Src, alt),
 				Recommendation: "Опишите, что изображено. Не подойдут «картинка», «фото» или имя файла.",
+				WCAG:           "1.1.1",
+			})
+		case utf8.RuneCountInString(alt) > 125:
+			findings = append(findings, Finding{
+				Code:           "IMG_ALT_TOO_LONG",
+				Severity:       "warning",
+				Title:          "Слишком длинный alt",
+				Element:        fmt.Sprintf(`<img src="%s" alt="%s">`, img.Src, alt),
+				Recommendation: "Сократите описание до 125 символов: короткое описание легче воспринять на слух.",
 				WCAG:           "1.1.1",
 			})
 		}

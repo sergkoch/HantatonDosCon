@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gocolly/colly/v2"
 	"github.com/temoto/robotstxt"
@@ -104,9 +105,16 @@ func (c *Colly) Crawl(ctx context.Context, startURL string, depth int) ([]Page, 
 		}
 		mu.Unlock()
 
+		bodyText := strings.TrimSpace(e.DOM.Find("body").Text())
+		if bodyText == "" {
+			bodyText = strings.TrimSpace(e.DOM.Text())
+		}
+
 		page := &Page{
-			URL:   pageURL,
-			Title: strings.TrimSpace(e.ChildText("title")),
+			URL:        pageURL,
+			Title:      strings.TrimSpace(e.ChildText("title")),
+			Lang:       strings.TrimSpace(e.Attr("lang")),
+			TextLength: utf8.RuneCountInString(bodyText),
 		}
 
 		e.ForEach("img", func(_ int, el *colly.HTMLElement) {
@@ -115,7 +123,67 @@ func (c *Colly) Crawl(ctx context.Context, startURL string, depth int) ([]Page, 
 				return
 			}
 			alt, hasAlt := el.DOM.Attr("alt")
-			page.Images = append(page.Images, Image{Src: src, Alt: alt, HasAlt: hasAlt})
+			anchor := el.DOM.Closest("a")
+			page.Images = append(page.Images, Image{
+				Src:      src,
+				Alt:      alt,
+				HasAlt:   hasAlt,
+				InLink:   anchor.Length() > 0,
+				LinkText: strings.TrimSpace(anchor.Text()),
+			})
+		})
+
+		e.ForEach("h1, h2, h3, h4, h5, h6", func(_ int, el *colly.HTMLElement) {
+			tag := el.DOM.Get(0).Data
+			if len(tag) != 2 || tag[0] != 'h' || tag[1] < '1' || tag[1] > '6' {
+				return
+			}
+			page.Headings = append(page.Headings, Heading{
+				Level: int(tag[1] - '0'),
+				Text:  strings.TrimSpace(el.Text),
+			})
+		})
+
+		labelFor := make(map[string]struct{})
+		e.ForEach("label[for]", func(_ int, el *colly.HTMLElement) {
+			if id := strings.TrimSpace(el.Attr("for")); id != "" {
+				labelFor[id] = struct{}{}
+			}
+		})
+
+		e.ForEach("input, select, textarea", func(_ int, el *colly.HTMLElement) {
+			kind := el.DOM.Get(0).Data
+			if kind == "input" {
+				kind = strings.ToLower(strings.TrimSpace(el.Attr("type")))
+				if kind == "" {
+					kind = "text"
+				}
+			}
+
+			switch kind {
+			case "hidden", "submit", "button", "reset", "image":
+				return
+			}
+
+			id := strings.TrimSpace(el.Attr("id"))
+			_, labelledByFor := labelFor[id]
+			hasLabel := strings.TrimSpace(el.Attr("aria-label")) != "" ||
+				strings.TrimSpace(el.Attr("aria-labelledby")) != "" ||
+				el.DOM.ParentsFiltered("label").Length() > 0 ||
+				labelledByFor
+
+			page.Inputs = append(page.Inputs, Input{
+				Type:        kind,
+				Name:        strings.TrimSpace(el.Attr("name")),
+				Placeholder: strings.TrimSpace(el.Attr("placeholder")),
+				HasLabel:    hasLabel,
+			})
+		})
+
+		e.ForEach("table", func(_ int, el *colly.HTMLElement) {
+			hasHeaders := el.DOM.Find("th").Length() > 0 ||
+				el.DOM.Find("[role='columnheader'], [role='rowheader']").Length() > 0
+			page.Tables = append(page.Tables, Table{HasHeaders: hasHeaders})
 		})
 
 		e.ForEach("a[href]", func(_ int, el *colly.HTMLElement) {
@@ -124,10 +192,15 @@ func (c *Colly) Crawl(ctx context.Context, startURL string, depth int) ([]Page, 
 				return
 			}
 			text := strings.TrimSpace(el.Text)
+			label := strings.TrimSpace(el.Attr("aria-label"))
+			if label == "" {
+				label = strings.TrimSpace(el.ChildAttr("img", "alt"))
+			}
+			link := Link{Href: href, Text: text, Label: label}
 			if strings.HasSuffix(strings.ToLower(href), ".pdf") {
-				page.PDFs = append(page.PDFs, Link{Href: href, Text: text})
+				page.PDFs = append(page.PDFs, link)
 			} else {
-				page.Links = append(page.Links, Link{Href: href, Text: text})
+				page.Links = append(page.Links, link)
 			}
 		})
 

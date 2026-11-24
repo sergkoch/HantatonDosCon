@@ -28,12 +28,20 @@ func TestCrawlCollectsContent(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = io.WriteString(w, `<!doctype html><html><head><title>Главная</title></head><body>
+		_, _ = io.WriteString(w, `<!doctype html><html lang="ru"><head><title>Главная</title></head><body>
+			<h1>Главная</h1>
+			<h3>Раздел</h3>
 			<img src="/pic.png" alt="Фото">
 			<img src="/pic2.png">
 			<a href="/about">О нас</a>
 			<a href="/doc.pdf">Документ</a>
 			<a href="https://external.example/x">чужое</a>
+			<form>
+				<label for="q">Поиск</label>
+				<input id="q" name="q">
+				<input name="phone" placeholder="Телефон">
+			</form>
+			<table><tr><td>1</td></tr></table>
 		</body></html>`)
 	})
 
@@ -78,6 +86,22 @@ func TestCrawlCollectsContent(t *testing.T) {
 	}
 	if home.Images[1].Alt != "" {
 		t.Fatalf("у второй картинки alt должен быть пустым, получили %q", home.Images[1].Alt)
+	}
+
+	if home.Lang != "ru" {
+		t.Fatalf("ожидали lang=ru, получили %q", home.Lang)
+	}
+	if len(home.Headings) != 2 || home.Headings[1].Level != 3 {
+		t.Fatalf("ожидали h1 и h3, получили %+v", home.Headings)
+	}
+	if len(home.Inputs) != 2 {
+		t.Fatalf("ожидали 2 поля, получили %+v", home.Inputs)
+	}
+	if !home.Inputs[0].HasLabel || home.Inputs[1].HasLabel {
+		t.Fatalf("подпись первого поля должна быть, второго — нет: %+v", home.Inputs)
+	}
+	if len(home.Tables) != 1 || home.Tables[0].HasHeaders {
+		t.Fatalf("ожидали таблицу без заголовков, получили %+v", home.Tables)
 	}
 	if len(home.PDFs) != 1 || !strings.HasSuffix(home.PDFs[0].Href, "doc.pdf") {
 		t.Fatalf("ожидали один PDF doc.pdf, получили %+v", home.PDFs)

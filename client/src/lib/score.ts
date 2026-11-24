@@ -20,6 +20,9 @@ const kindLabels: Record<FindingKind, string> = {
   image: "Изображение",
   pdf: "PDF",
   link: "Ссылка",
+  page: "Страница",
+  form: "Форма",
+  table: "Таблица",
 };
 
 export function kindLabel(kind: FindingKind): string {
