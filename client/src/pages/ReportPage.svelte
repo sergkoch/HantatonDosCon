@@ -99,6 +99,16 @@
             </span>
             <span class="badge badge--ok">{current.stats.ok} в порядке</span>
           </div>
+          <p class="report-coverage">
+            Проверено страниц: {current.pages ?? 0}.
+            {#if current.checkedLinks}
+              Ссылок проверено: {current.checkedLinks}, не удалось проверить:
+              {current.unverifiedLinks ?? 0}.
+            {/if}
+            Оценка учитывает alt, текст и доступность ссылок, подписи полей,
+            заголовки и таблицы. PDF, контраст, клавиатура и ARIA не
+            проверяются.
+          </p>
         </div>
 
         {#if current.score !== null}

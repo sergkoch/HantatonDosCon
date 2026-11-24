@@ -127,14 +127,27 @@ func (h *handler) runScan(initial store.Scan) {
 		return
 	}
 
+	if len(pages) == 0 {
+		h.fail(ctx, scan, "не удалось обойти ни одной страницы: сайт недоступен, закрыт robots.txt или отдаёт контент только через JavaScript")
+		return
+	}
+
+	scan.Pages = len(pages)
+
 	altChecker := checks.AltChecker{}
 	linkChecker := checks.LinkChecker{}
+	pageChecker := checks.PageChecker{}
+	formChecker := checks.FormChecker{}
+	tableChecker := checks.TableChecker{}
 
 	checkFindings := make([]checks.Finding, 0)
 	links := make([]crawler.Link, 0)
 	for _, page := range pages {
 		checkFindings = append(checkFindings, altChecker.Check(page)...)
 		checkFindings = append(checkFindings, linkChecker.Check(page)...)
+		checkFindings = append(checkFindings, pageChecker.Check(page)...)
+		checkFindings = append(checkFindings, formChecker.Check(page)...)
+		checkFindings = append(checkFindings, tableChecker.Check(page)...)
 		links = append(links, page.Links...)
 		links = append(links, page.PDFs...)
 	}
@@ -143,13 +156,16 @@ func (h *handler) runScan(initial store.Scan) {
 		h.runAILinkChecks(ctx, pages, &checkFindings)
 	}
 
-	checkFindings = append(checkFindings, checks.BrokenLinks(ctx, h.httpClient, links, 20)...)
+	brokenLinks, checkedLinks, unverifiedLinks := checks.BrokenLinks(ctx, h.httpClient, links, 50)
+	checkFindings = append(checkFindings, brokenLinks...)
 
 	critical, warning, ok := checks.Stats(checkFindings)
 	score := checks.Score(checkFindings)
 
 	scan.Findings = toStoreFindings(checkFindings)
 	scan.Stats = store.Stats{Critical: critical, Warning: warning, OK: ok}
+	scan.CheckedLinks = checkedLinks
+	scan.UnverifiedLinks = unverifiedLinks
 	scan.Score = &score
 	scan.Status = store.StatusDone
 
@@ -205,6 +221,7 @@ func (h *handler) runAILinkChecks(ctx context.Context, pages []crawler.Page, fin
 func (h *handler) fail(ctx context.Context, scan store.Scan, reason string) {
 	h.log.Error("scan failed", "id", scan.ID, "reason", reason)
 	scan.Status = store.StatusFailed
+	scan.Error = reason
 	if err := h.store.Update(ctx, scan); err != nil {
 		h.log.Error("update failed scan", "error", err)
 	}
@@ -235,6 +252,12 @@ func kindFromCode(code string) string {
 		return "pdf"
 	case strings.HasPrefix(code, "LINK_"):
 		return "link"
+	case strings.HasPrefix(code, "PAGE_"):
+		return "page"
+	case strings.HasPrefix(code, "FORM_"):
+		return "form"
+	case strings.HasPrefix(code, "TABLE_"):
+		return "table"
 	default:
 		return "image"
 	}

@@ -59,8 +59,8 @@
       <div class="field field--small">
         <label class="field__label" for="depth">Глубина</label>
         <select class="select" id="depth" name="depth" bind:value={depth}>
-          <option value={1}>1 — только страница</option>
-          <option value={2}>2 — страница и ссылки</option>
+          <option value={1}>1 — страница</option>
+          <option value={2}>2 — ссылки</option>
           <option value={3}>3 — глубже</option>
         </select>
       </div>
@@ -80,7 +80,52 @@
   </section>
 
   <section class="section" id="how" aria-labelledby="how-title">
-    <h2 class="section__title" id="how-title">Что проверяем</h2>
+    <div class="how">
+      <div class="how__head">
+        <div>
+          <p class="how__eyebrow">Процесс</p>
+          <h2 class="section__title" id="how-title">Как это работает</h2>
+        </div>
+        <p class="how__note">3 шага · без настройки</p>
+      </div>
+
+      <ol class="how__steps">
+        <li class="how-step">
+          <span class="how-step__num" aria-hidden="true"
+            ><span class="how-step__digit">1</span></span
+          >
+          <h3 class="how-step__title">Вставьте адрес</h3>
+          <p class="how-step__text">
+            Вставьте адрес сайта. Можно проверить одну страницу или пройти по
+            ссылкам с неё.
+          </p>
+        </li>
+        <li class="how-step">
+          <span class="how-step__num" aria-hidden="true"
+            ><span class="how-step__digit">2</span></span
+          >
+          <h3 class="how-step__title">Мы проверим сайт</h3>
+          <p class="how-step__text">
+            Соберём страницы, картинки, PDF и ссылки. Смотрим только этот сайт,
+            чтобы не создавать ему лишнюю нагрузку.
+          </p>
+        </li>
+        <li class="how-step">
+          <span class="how-step__num" aria-hidden="true"
+            ><span class="how-step__digit">3</span></span
+          >
+          <h3 class="how-step__title">Получите отчёт</h3>
+          <p class="how-step__text">
+            Покажем, что не так, насколько это важно и как исправить. Отчёт
+            можно скачать или оставить в нём только нужные пункты.
+          </p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="checks" aria-labelledby="checks-title">
+    <h2 class="section__title" id="checks-title">Что проверяем</h2>
     <div class="grid">
       <Card title="Изображения">
         {#snippet icon()}

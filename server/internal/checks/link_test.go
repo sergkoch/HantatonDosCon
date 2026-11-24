@@ -16,6 +16,7 @@ func TestLinkChecker(t *testing.T) {
 			{Href: "/b", Text: "   "},
 			{Href: "/c", Text: "Положение о конкурсе"},
 			{Href: "/d", Text: "здесь"},
+			{Href: "/e", Text: "", Label: "Поиск"},
 		},
 	}
 
@@ -38,11 +39,14 @@ func TestLinkChecker(t *testing.T) {
 
 func TestBrokenLinks(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/ok" {
+		switch r.URL.Path {
+		case "/ok":
 			w.WriteHeader(http.StatusOK)
-			return
+		case "/forbidden":
+			w.WriteHeader(http.StatusForbidden)
+		default:
+			http.NotFound(w, r)
 		}
-		http.NotFound(w, r)
 	}))
 	defer server.Close()
 
@@ -50,13 +54,20 @@ func TestBrokenLinks(t *testing.T) {
 		{Href: server.URL + "/ok", Text: "ок"},
 		{Href: server.URL + "/missing", Text: "нет"},
 		{Href: server.URL + "/ok", Text: "дубль"},
+		{Href: server.URL + "/forbidden", Text: "закрыто"},
 	}
 
-	findings := BrokenLinks(context.Background(), server.Client(), links, 10)
+	findings, checked, unverified := BrokenLinks(context.Background(), server.Client(), links, 10)
 	if len(findings) != 1 {
 		t.Fatalf("ожидали 1 находку, получили %d: %+v", len(findings), findings)
 	}
 	if findings[0].Code != "LINK_BROKEN" {
 		t.Fatalf("ожидали LINK_BROKEN, получили %s", findings[0].Code)
+	}
+	if checked != 3 {
+		t.Fatalf("ожидали 3 проверенные ссылки, получили %d", checked)
+	}
+	if unverified != 1 {
+		t.Fatalf("ожидали 1 непроверенную ссылку, получили %d", unverified)
 	}
 }

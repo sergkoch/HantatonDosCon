@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"accessible-content/server/internal/crawler"
 )
+
+const linkCheckUserAgent = "Mozilla/5.0 (compatible; AccessibleContentBot/0.1; +https://github.com/sergkoch/HantatonDosCon)"
 
 var genericLinkText = map[string]struct{}{
 	"подробнее":    {},
@@ -46,9 +49,12 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 
 	for _, link := range links {
 		text := strings.TrimSpace(link.Text)
-		lower := strings.ToLower(text)
+		name := text
+		if name == "" {
+			name = strings.TrimSpace(link.Label)
+		}
 
-		if text == "" {
+		if name == "" {
 			findings = append(findings, Finding{
 				Code:           "LINK_TEXT_EMPTY",
 				Severity:       "warning",
@@ -60,12 +66,16 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 			continue
 		}
 
-		if _, ok := genericLinkText[lower]; ok {
+		if text == "" {
+			continue
+		}
+
+		if _, ok := genericLinkText[strings.ToLower(text)]; ok {
 			findings = append(findings, Finding{
 				Code:           "LINK_TEXT_GENERIC",
 				Severity:       "warning",
 				Title:          "Непонятный текст ссылки",
-				Element:        fmt.Sprintf(`<a href="%s">%s</a>`, link.Href, text),
+				Element:        linkElement(link),
 				Recommendation: fmt.Sprintf("Напишите, что откроется: например «Положение о конкурсе» вместо «%s».", text),
 				WCAG:           "2.4.4",
 			})
@@ -76,20 +86,22 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 }
 
 // BrokenLinks проверяет доступность ссылок по HTTP (T13).
-func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link, max int) []Finding {
+// Битыми считаются только 404/410. Ответы 401/403/429/5xx и сетевые ошибки
+// означают «не удалось проверить»: это часто защита от ботов, а не мёртвая ссылка.
+// Возвращает находки, количество проверенных и количество непроверенных ссылок.
+func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link, max int) ([]Finding, int, int) {
 	if max <= 0 {
 		max = 50
 	}
 	if client == nil {
-		client = &http.Client{Timeout: 5 * time.Second}
+		client = &http.Client{Timeout: 6 * time.Second}
 	}
 
 	seen := make(map[string]struct{}, len(links))
-	findings := make([]Finding, 0)
-	checked := 0
+	candidates := make([]crawler.Link, 0, max)
 
 	for _, link := range links {
-		if checked >= max {
+		if len(candidates) >= max {
 			break
 		}
 
@@ -109,44 +121,76 @@ func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link,
 			continue
 		}
 		seen[href] = struct{}{}
-		checked++
+		candidates = append(candidates, crawler.Link{Href: href, Text: strings.TrimSpace(link.Text), Label: strings.TrimSpace(link.Label)})
+	}
 
-		status, err := statusOf(ctx, client, href)
-		if err != nil || status >= http.StatusBadRequest {
+	type checkResult struct {
+		link   crawler.Link
+		status int
+		err    error
+	}
+
+	results := make([]checkResult, len(candidates))
+	sem := make(chan struct{}, 10)
+	var wg sync.WaitGroup
+
+	for i, link := range candidates {
+		wg.Add(1)
+		go func(i int, link crawler.Link) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			status, err := statusOf(ctx, client, link.Href)
+			results[i] = checkResult{link: link, status: status, err: err}
+		}(i, link)
+	}
+	wg.Wait()
+
+	findings := make([]Finding, 0)
+	unverified := 0
+
+	for _, result := range results {
+		switch {
+		case result.err != nil:
+			unverified++
+		case result.status == http.StatusNotFound || result.status == http.StatusGone:
 			findings = append(findings, Finding{
 				Code:           "LINK_BROKEN",
 				Severity:       "critical",
 				Title:          "Битая ссылка",
-				Element:        fmt.Sprintf(`<a href="%s">%s</a>`, href, strings.TrimSpace(link.Text)),
+				Element:        linkElement(result.link),
 				Recommendation: "Исправьте адрес ссылки или удалите её — сейчас она ведёт в никуда.",
 				WCAG:           "2.4.4",
 			})
+		case result.status >= http.StatusBadRequest:
+			unverified++
 		}
 	}
 
-	return findings
+	return findings, len(candidates), unverified
+}
+
+func linkElement(link crawler.Link) string {
+	text := strings.TrimSpace(link.Text)
+	if text == "" {
+		text = strings.TrimSpace(link.Label)
+	}
+	return fmt.Sprintf(`<a href="%s">%s</a>`, link.Href, text)
 }
 
 func statusOf(ctx context.Context, client *http.Client, href string) (int, error) {
-	headCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	reqCtx, cancel := context.WithTimeout(ctx, 6*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(headCtx, http.MethodHead, href, nil)
-	if err == nil {
-		resp, headErr := client.Do(req)
-		if headErr == nil {
-			defer resp.Body.Close()
-			return resp.StatusCode, nil
-		}
-	}
-
-	getCtx, getCancel := context.WithTimeout(ctx, 5*time.Second)
-	defer getCancel()
-
-	req, err = http.NewRequestWithContext(getCtx, http.MethodGet, href, nil)
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, href, nil)
 	if err != nil {
 		return 0, err
 	}
+	req.Header.Set("User-Agent", linkCheckUserAgent)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Range", "bytes=0-0")
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return 0, err

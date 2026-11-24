@@ -43,9 +43,9 @@
   const failed = $derived(scan?.status === "failed");
   const statusText = $derived(
     done
-      ? "Проверка завершена"
+      ? `Проверка завершена · проверено страниц: ${scan?.pages ?? 0}`
       : failed
-        ? "Проверка не удалась"
+        ? (scan?.error ?? "Проверка не удалась")
         : "Проверяем страницы и медиа…",
   );
 </script>
@@ -62,7 +62,7 @@
         {scan?.url ?? "Проверяем сайт…"}
       </h1>
 
-      {#if !done}
+      {#if !done && !failed}
         <div class="scan-visual" aria-hidden="true">
           <span class="scan-visual__pulse"></span>
           <span class="scan-visual__pulse"></span>
@@ -92,7 +92,7 @@
 
       <p class="status" aria-live="polite">{statusText}</p>
 
-      {#if scan}
+      {#if scan && (done || scan.score !== null)}
         {@const current = scan}
         <div class="summary">
           <div class="summary__item summary__item--score">
@@ -127,6 +127,21 @@
             Открыть отчёт
           </a>
         {/if}
+      {/if}
+
+      {#if failed}
+        <div class="actions">
+          <a
+            class="button button--primary"
+            href="/"
+            onclick={(event) => {
+              event.preventDefault();
+              navigate("/");
+            }}
+          >
+            Попробовать снова
+          </a>
+        </div>
       {/if}
     </section>
   </div>
