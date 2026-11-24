@@ -172,10 +172,14 @@
 
         {#if current.changes}
           <div class="report-head__stats">
-            <span class="badge badge--critical">
+            <span
+              class={`badge ${current.changes.added.length > 0 ? "badge--critical" : "badge--ok"}`}
+            >
               {current.changes.added.length} новых
             </span>
-            <span class="badge badge--ok">
+            <span
+              class={`badge ${current.changes.fixed.length > 0 ? "badge--ok" : ""}`.trim()}
+            >
               {current.changes.fixed.length} исправлено
             </span>
             <span class="badge">
