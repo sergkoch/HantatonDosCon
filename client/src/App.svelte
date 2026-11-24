@@ -1,5 +1,6 @@
 <script lang="ts">
   import Layout from "./components/Layout.svelte";
+  import HistoryPage from "./pages/HistoryPage.svelte";
   import HomePage from "./pages/HomePage.svelte";
   import NotFoundPage from "./pages/NotFoundPage.svelte";
   import ReportPage from "./pages/ReportPage.svelte";
@@ -14,6 +15,8 @@
 <Layout>
   {#if path === "/"}
     <HomePage />
+  {:else if path === "/history"}
+    <HistoryPage />
   {:else if scanId !== null}
     <ScanPage id={scanId} />
   {:else if reportId !== null}

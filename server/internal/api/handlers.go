@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,13 +84,22 @@ func (h *handler) createScan(c *gin.Context) {
 		return
 	}
 
+	version := 1
+	previousID := ""
+	if previous, findErr := h.store.LatestDone(c.Request.Context(), parsed.String()); findErr == nil {
+		version = previous.Version + 1
+		previousID = previous.ID
+	}
+
 	scan := store.Scan{
-		ID:        uuid.NewString(),
-		URL:       parsed.String(),
-		Depth:     request.Depth,
-		Status:    store.StatusQueued,
-		Findings:  []store.Finding{},
-		CreatedAt: time.Now().UTC(),
+		ID:         uuid.NewString(),
+		URL:        parsed.String(),
+		Depth:      request.Depth,
+		Status:     store.StatusQueued,
+		Version:    version,
+		PreviousID: previousID,
+		Findings:   []store.Finding{},
+		CreatedAt:  time.Now().UTC(),
 	}
 
 	if err := h.store.Create(c.Request.Context(), scan); err != nil {
@@ -100,6 +110,33 @@ func (h *handler) createScan(c *gin.Context) {
 	go h.runScan(scan)
 
 	c.JSON(http.StatusCreated, scan)
+}
+
+func (h *handler) listScans(c *gin.Context) {
+	targetURL := strings.TrimSpace(c.Query("url"))
+	limit := 20
+	if raw := c.Query("limit"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			limit = parsed
+		}
+	}
+	if limit < 1 {
+		limit = 1
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	scans, err := h.store.List(c.Request.Context(), targetURL, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		return
+	}
+	if scans == nil {
+		scans = []store.Scan{}
+	}
+
+	c.JSON(http.StatusOK, scans)
 }
 
 func (h *handler) getScan(c *gin.Context) {
@@ -187,6 +224,20 @@ func (h *handler) runScan(initial store.Scan) {
 	scan.UnverifiedLinks = unverifiedLinks
 	scan.Score = &score
 	scan.Status = store.StatusDone
+
+	if scan.PreviousID != "" {
+		previous, previousErr := h.store.Get(ctx, scan.PreviousID)
+		if previousErr != nil {
+			h.log.Warn("previous scan not found", "id", scan.PreviousID, "error", previousErr)
+		} else {
+			changes := store.Diff(previous.Findings, scan.Findings)
+			if previous.Score != nil {
+				delta := score - *previous.Score
+				changes.ScoreDelta = &delta
+			}
+			scan.Changes = changes
+		}
+	}
 
 	if err := h.store.Update(ctx, scan); err != nil {
 		h.log.Error("update finished scan", "error", err)
@@ -384,6 +435,7 @@ func toStoreFindings(findings []checks.Finding) []store.Finding {
 	for i, f := range findings {
 		result = append(result, store.Finding{
 			ID:             fmt.Sprintf("f%d", i+1),
+			Code:           f.Code,
 			Kind:           kindFromCode(f.Code),
 			Severity:       store.Severity(f.Severity),
 			Title:          f.Title,

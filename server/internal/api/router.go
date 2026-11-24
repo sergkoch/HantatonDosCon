@@ -77,6 +77,7 @@ func NewRouter(opts Options) *gin.Engine {
 	api := router.Group("/api")
 	api.GET("/health", h.health)
 	api.POST("/scans", limitBody(maxRequestBodyBytes), rateLimit(limiter), h.createScan)
+	api.GET("/scans", h.listScans)
 	api.GET("/scans/:id", h.getScan)
 
 	return router

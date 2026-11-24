@@ -59,6 +59,15 @@
           >
             Проверить
           </a>
+          <a
+            href="/history"
+            onclick={(event) => {
+              event.preventDefault();
+              navigate("/history");
+            }}
+          >
+            История
+          </a>
           <a href="#how">Как это работает</a>
         </nav>
 
