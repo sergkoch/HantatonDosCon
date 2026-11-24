@@ -7,6 +7,7 @@ import (
 
 	"accessible-content/server/internal/ai"
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/pdf"
 	"accessible-content/server/internal/safehttp"
 	"accessible-content/server/internal/store"
 
@@ -23,6 +24,7 @@ type Options struct {
 	Policy       *safehttp.Policy
 	HTTPClient   *http.Client
 	RateLimit    int
+	PDF          pdf.Analyzer
 }
 
 type handler struct {
@@ -31,8 +33,10 @@ type handler struct {
 	aiConfigured bool
 	crawler      crawler.Crawler
 	aiClient     ai.Client
+	pdfAnalyzer  pdf.Analyzer
 	httpClient   *http.Client
 	policy       *safehttp.Policy
+	pdfClient    *http.Client
 }
 
 func NewRouter(opts Options) *gin.Engine {
@@ -52,6 +56,11 @@ func NewRouter(opts Options) *gin.Engine {
 		httpClient = &http.Client{Timeout: 5 * time.Second}
 	}
 
+	pdfClient := &http.Client{Timeout: 30 * time.Second}
+	if opts.Policy != nil {
+		pdfClient = safehttp.NewClient(opts.Policy, 30*time.Second)
+	}
+
 	h := &handler{
 		store:        opts.Store,
 		log:          log,
@@ -60,6 +69,8 @@ func NewRouter(opts Options) *gin.Engine {
 		aiClient:     opts.AI,
 		httpClient:   httpClient,
 		policy:       opts.Policy,
+		pdfAnalyzer:  opts.PDF,
+		pdfClient:    pdfClient,
 	}
 	limiter := newRateLimiter(opts.RateLimit)
 

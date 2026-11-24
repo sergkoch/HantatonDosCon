@@ -14,6 +14,7 @@ import (
 	"accessible-content/server/internal/api"
 	"accessible-content/server/internal/config"
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/pdf"
 	"accessible-content/server/internal/safehttp"
 	"accessible-content/server/internal/store"
 )
@@ -35,6 +36,15 @@ func main() {
 	policy := safehttp.NewPolicy(cfg.AllowedHosts)
 	scannerClient := safehttp.NewClient(policy, 30*time.Second)
 
+	var pdfAnalyzer pdf.Analyzer
+	pdfInstance, err := pdf.NewAnalyzer()
+	if err != nil {
+		log.Warn("pdf analyzer disabled", "error", err)
+	} else {
+		pdfAnalyzer = pdfInstance
+		defer pdfInstance.Close()
+	}
+
 	memory := store.NewMemory()
 	handler := api.NewRouter(api.Options{
 		Store:        memory,
@@ -45,6 +55,7 @@ func main() {
 		Policy:       policy,
 		HTTPClient:   scannerClient,
 		RateLimit:    cfg.RateLimitPerMinute,
+		PDF:          pdfAnalyzer,
 	})
 
 	server := &http.Server{
