@@ -34,3 +34,18 @@ export async function getScan(id: string): Promise<Scan> {
 
   return (await response.json()) as Scan;
 }
+
+export async function listScans(url = "", limit = 20): Promise<Scan[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (url.trim() !== "") {
+    params.set("url", url.trim());
+  }
+
+  const response = await fetch(`/api/scans?${params.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return (await response.json()) as Scan[];
+}
