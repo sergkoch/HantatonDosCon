@@ -23,6 +23,7 @@ type Options struct {
 	Delay          time.Duration
 	RequestTimeout time.Duration
 	UserAgent      string
+	HTTPClient     *http.Client
 }
 
 // Colly — реализация Crawler на основе Colly.
@@ -49,9 +50,14 @@ func New(opts Options) *Colly {
 		opts.UserAgent = defaultUserAgent
 	}
 
+	client := opts.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: opts.RequestTimeout}
+	}
+
 	return &Colly{
 		opts: opts,
-		http: &http.Client{Timeout: opts.RequestTimeout},
+		http: client,
 	}
 }
 
@@ -76,6 +82,7 @@ func (c *Colly) Crawl(ctx context.Context, startURL string, depth int) ([]Page, 
 		colly.UserAgent(c.opts.UserAgent),
 	)
 	collector.SetRequestTimeout(c.opts.RequestTimeout)
+	collector.SetClient(c.http)
 
 	if err := collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
