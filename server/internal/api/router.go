@@ -19,6 +19,7 @@ type Options struct {
 	Store        store.Store
 	Log          *slog.Logger
 	AIConfigured bool
+	AIVision     bool
 	Crawler      crawler.Crawler
 	AI           ai.Client
 	Policy       *safehttp.Policy
@@ -31,6 +32,7 @@ type handler struct {
 	store        store.Store
 	log          *slog.Logger
 	aiConfigured bool
+	aiVision     bool
 	crawler      crawler.Crawler
 	aiClient     ai.Client
 	pdfAnalyzer  pdf.Analyzer
@@ -65,6 +67,7 @@ func NewRouter(opts Options) *gin.Engine {
 		store:        opts.Store,
 		log:          log,
 		aiConfigured: opts.AIConfigured,
+		aiVision:     opts.AIVision,
 		crawler:      opts.Crawler,
 		aiClient:     opts.AI,
 		httpClient:   httpClient,

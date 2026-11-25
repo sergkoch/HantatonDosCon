@@ -232,6 +232,7 @@ func (h *handler) runScan(initial store.Scan) {
 	checkFindings = append(checkFindings, h.checkPDFs(ctx, pages)...)
 
 	if h.aiClient != nil {
+		checkFindings = append(checkFindings, h.checkImages(ctx, pages)...)
 		h.runAILinkChecks(ctx, pages, &checkFindings)
 	}
 
@@ -398,6 +399,126 @@ func (h *handler) checkPDF(ctx context.Context, link crawler.Link) []checks.Find
 	}
 
 	return findings
+}
+
+const (
+	maxImagesPerScan = 6
+	maxImageSize     = 5 << 20
+)
+
+func (h *handler) checkImages(ctx context.Context, pages []crawler.Page) []checks.Finding {
+	if h.aiClient == nil || !h.aiVision {
+		return nil
+	}
+
+	findings := make([]checks.Finding, 0)
+	seen := make(map[string]struct{})
+
+	for _, page := range pages {
+		for _, image := range page.Images {
+			if len(seen) >= maxImagesPerScan {
+				return findings
+			}
+			if !image.HasAlt || strings.TrimSpace(image.Alt) == "" {
+				continue
+			}
+
+			src := strings.TrimSpace(image.Src)
+			parsed, err := url.Parse(src)
+			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+				continue
+			}
+			if _, exists := seen[src]; exists {
+				continue
+			}
+			seen[src] = struct{}{}
+
+			findings = append(findings, h.checkImage(ctx, page.URL, image)...)
+		}
+	}
+
+	return findings
+}
+
+func (h *handler) checkImage(ctx context.Context, pageURL string, image crawler.Image) []checks.Finding {
+	requestCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(requestCtx, http.MethodGet, image.Src, nil)
+	if err != nil {
+		return nil
+	}
+
+	response, err := h.pdfClient.Do(request)
+	if err != nil {
+		h.log.Warn("image download failed", "src", image.Src, "error", err)
+		return nil
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	contentType := strings.TrimSpace(strings.Split(response.Header.Get("Content-Type"), ";")[0])
+	if !strings.HasPrefix(contentType, "image/") || contentType == "image/svg+xml" {
+		return nil
+	}
+
+	data, err := io.ReadAll(io.LimitReader(response.Body, maxImageSize+1))
+	if err != nil || len(data) == 0 || len(data) > maxImageSize {
+		h.log.Warn("image skipped", "src", image.Src, "size", len(data))
+		return nil
+	}
+
+	result, err := h.aiClient.CheckImage(requestCtx, ai.ImageRequest{
+		Image:    data,
+		MimeType: contentType,
+		Alt:      image.Alt,
+		Context:  pageURL,
+	})
+	if err != nil {
+		h.log.Warn("ai image check failed", "src", image.Src, "error", err)
+		return nil
+	}
+
+	element := fmt.Sprintf(`<img src="%s" alt="%s">`, image.Src, image.Alt)
+
+	switch strings.ToLower(strings.TrimSpace(result.Verdict)) {
+	case "mismatch":
+		recommendation := "Модель считает, что alt не соответствует изображению."
+		if strings.TrimSpace(result.Reason) != "" {
+			recommendation += " " + strings.TrimSpace(result.Reason)
+		}
+		if strings.TrimSpace(result.SuggestedAlt) != "" {
+			recommendation += fmt.Sprintf(" Предлагаемый alt: «%s».", strings.TrimSpace(result.SuggestedAlt))
+		}
+
+		return []checks.Finding{{
+			Code:           "IMG_ALT_AI_MISMATCH",
+			Severity:       "critical",
+			Title:          "alt не соответствует изображению",
+			Element:        element,
+			Recommendation: recommendation,
+			WCAG:           "1.1.1",
+		}}
+	case "match":
+		recommendation := "Модель подтвердила, что alt соответствует изображению."
+		if strings.TrimSpace(result.Reason) != "" {
+			recommendation += " " + strings.TrimSpace(result.Reason)
+		}
+
+		return []checks.Finding{{
+			Code:           "IMG_ALT_AI_OK",
+			Severity:       "ok",
+			Title:          "alt соответствует изображению",
+			Element:        element,
+			Recommendation: recommendation,
+			WCAG:           "1.1.1",
+		}}
+	default:
+		return nil
+	}
 }
 
 func (h *handler) runAILinkChecks(ctx context.Context, pages []crawler.Page, findings *[]checks.Finding) {
