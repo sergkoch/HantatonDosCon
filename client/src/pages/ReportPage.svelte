@@ -11,25 +11,81 @@
   let scan = $state<Scan | null>(null);
   let error = $state("");
   let filter = $state<"all" | Severity>("all");
+  let displayScore = $state(0);
 
   const circumference = 2 * Math.PI * 68;
 
+  // Опрашиваем скан, пока он не завершён (раньше это делала ScanPage).
   $effect(() => {
-    let active = true;
+    scan = null;
+    error = "";
+    displayScore = 0;
 
-    getScan(id)
-      .then((next) => {
-        if (active) scan = next;
-      })
-      .catch((cause: unknown) => {
-        if (active) {
-          error =
-            cause instanceof Error ? cause.message : "Не удалось получить отчёт";
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    async function load() {
+      try {
+        const next = await getScan(id);
+        if (!active) return;
+
+        scan = next;
+
+        if (next.status !== "done" && next.status !== "failed") {
+          timer = setTimeout(load, 1500);
         }
-      });
+      } catch (cause) {
+        if (!active) return;
+        error =
+          cause instanceof Error ? cause.message : "Не удалось получить отчёт";
+      }
+    }
+
+    load();
 
     return () => {
       active = false;
+      if (timer) clearTimeout(timer);
+    };
+  });
+
+  // Анимация «набора» оценки от 0 до итоговой.
+  $effect(() => {
+    const current = scan;
+    if (!current || current.status !== "done" || current.score === null) {
+      return;
+    }
+
+    const target = current.score;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      displayScore = target;
+      return;
+    }
+
+    displayScore = 0;
+    const startedAt = performance.now();
+    const duration = 1100;
+    let frame = 0;
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      displayScore = Math.round(target * eased);
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+      }
+    };
+
+    // Страховка: если rAF приостановлен (вкладка скрыта), всё равно доходим до цели.
+    const settle = setTimeout(() => {
+      displayScore = target;
+    }, duration + 250);
+
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(settle);
     };
   });
 
@@ -37,13 +93,17 @@
     { value: "all", label: "Все" },
     { value: "critical", label: "Критично" },
     { value: "warning", label: "Предупреждения" },
-    { value: "ok", label: "В порядке" },
   ];
+
+  // В списке — только проблемы (без «в порядке»).
+  const problems = $derived(
+    (scan?.findings ?? []).filter((finding) => finding.severity !== "ok"),
+  );
 
   const findings = $derived(
     filter === "all"
-      ? (scan?.findings ?? [])
-      : (scan?.findings.filter((finding) => finding.severity === filter) ?? []),
+      ? problems
+      : problems.filter((finding) => finding.severity === filter),
   );
 
   function downloadCsv(current: Scan) {
@@ -80,7 +140,29 @@
   <div class="container">
     <p class="field__error" role="alert">{error}</p>
   </div>
-{:else if scan}
+{:else if scan && scan.status === "failed"}
+  <div class="container">
+    <section class="section" aria-labelledby="failed-title">
+      <p class="hero__eyebrow">Проверка</p>
+      <h1 class="section__title" id="failed-title">{scan.url}</h1>
+      <p class="field__error" role="alert">
+        {scan.error ?? "Проверка не удалась"}
+      </p>
+      <div class="actions">
+        <a
+          class="button button--primary"
+          href="/"
+          onclick={(event) => {
+            event.preventDefault();
+            navigate("/");
+          }}
+        >
+          Попробовать снова
+        </a>
+      </div>
+    </section>
+  </div>
+{:else if scan && scan.status === "done"}
   {@const current = scan}
   <div class="container">
     <section class="section" aria-labelledby="report-title">
@@ -89,7 +171,7 @@
           <p class="hero__eyebrow">Отчёт · проверка v{current.version}</p>
           <h1 class="report-head__title" id="report-title">{current.url}</h1>
           <p class="status">
-            Находок: {current.findings.length} · {scoreLabel(current.score)}
+            Находок: {problems.length} · {scoreLabel(current.score)}
             {#if current.previousId}
               ·
               <a
@@ -110,7 +192,6 @@
             <span class="badge badge--warning">
               {current.stats.warning} предупр.
             </span>
-            <span class="badge badge--ok">{current.stats.ok} в порядке</span>
           </div>
           <p class="report-coverage">
             Проверено страниц: {current.pages ?? 0}.
@@ -154,32 +235,30 @@
                 stroke-width="12"
                 stroke-linecap="round"
                 stroke-dasharray={circumference}
-                stroke-dashoffset={circumference * (1 - current.score / 100)}
+                stroke-dashoffset={circumference * (1 - displayScore / 100)}
               />
             </svg>
             <div class="score-ring__center">
-              <span class="score-ring__num">{current.score}</span>
+              <span class="score-ring__num">{displayScore}</span>
               <span class="score-ring__label">из 100</span>
             </div>
           </div>
         {/if}
       </div>
 
-      <section class="section" aria-labelledby="changes-title">
-        <h2 class="section__title" id="changes-title">
-          Что изменилось с прошлой проверки
-        </h2>
+      {#if current.changes}
+        <section class="section" aria-labelledby="changes-title">
+          <h2 class="section__title" id="changes-title">
+            Что изменилось с прошлой проверки
+          </h2>
 
-        {#if current.changes}
           <div class="report-head__stats">
             <span
-              class={`badge ${current.changes.added.length > 0 ? "badge--critical" : "badge--ok"}`}
+              class={`badge ${current.changes.added.length > 0 ? "badge--critical" : ""}`.trim()}
             >
               {current.changes.added.length} новых
             </span>
-            <span
-              class={`badge ${current.changes.fixed.length > 0 ? "badge--ok" : ""}`.trim()}
-            >
+            <span class="badge">
               {current.changes.fixed.length} исправлено
             </span>
             <span class="badge">
@@ -222,13 +301,8 @@
               Новых проблем нет, исправлений тоже нет — состав находок не изменился.
             </p>
           {/if}
-        {:else}
-          <p class="status">
-            Это первая проверка этого адреса. Следующая проверка покажет, что
-            изменилось.
-          </p>
-        {/if}
-      </section>
+        </section>
+      {/if}
 
       <fieldset class="filters">
         <legend class="visually-hidden">Фильтр по критичности</legend>
@@ -256,8 +330,11 @@
             </tr>
           </thead>
           <tbody>
-            {#each findings as finding (finding.id)}
-              <tr>
+            {#each findings as finding, index (finding.id)}
+              <tr
+                class="report-row"
+                style={`animation-delay: ${Math.min(index * 45, 500)}ms`}
+              >
                 <td>
                   <Badge severity={finding.severity} />
                 </td>
@@ -294,11 +371,35 @@
   </div>
 {:else}
   <div class="container">
-    <div class="scan-visual" aria-hidden="true">
-      <span class="scan-visual__pulse"></span>
-      <span class="scan-visual__pulse"></span>
-      <span class="scan-visual__pulse"></span>
-    </div>
-    <p class="status" aria-live="polite">Загружаем отчёт…</p>
+    <section class="section" aria-labelledby="scanning-title">
+      <p class="hero__eyebrow">Проверка</p>
+      <h1 class="section__title" id="scanning-title">Проверяем сайт…</h1>
+      <div class="scan-visual" aria-hidden="true">
+        <span class="scan-visual__pulse"></span>
+        <span class="scan-visual__pulse"></span>
+        <span class="scan-visual__pulse"></span>
+        <span class="scan-visual__core">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+          </svg>
+        </span>
+      </div>
+      <div class="progress" aria-hidden="true">
+        <div class="progress__bar"></div>
+      </div>
+      <p class="status" aria-live="polite">Собираем страницы, ссылки и медиа…</p>
+    </section>
   </div>
 {/if}

@@ -16,7 +16,7 @@
 
     try {
       const scan = await createScan(url, depth);
-      navigate(`/scan/${scan.id}`);
+      navigate(`/report/${scan.id}`);
     } catch (cause) {
       error =
         cause instanceof Error ? cause.message : "Не удалось запустить проверку";

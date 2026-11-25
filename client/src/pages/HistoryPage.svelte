@@ -68,7 +68,11 @@
       Каждая повторная проверка одного адреса получает новый номер версии.
     </p>
 
-    <form class="form" onsubmit={submit} aria-label="Фильтр истории по адресу">
+    <form
+      class="form form--filter"
+      onsubmit={submit}
+      aria-label="Фильтр истории по адресу"
+    >
       <div class="field">
         <label class="field__label" for="history-url">Адрес сайта</label>
         <input
