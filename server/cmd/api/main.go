@@ -60,6 +60,7 @@ func main() {
 		Store:        scanStore,
 		Log:          log,
 		AIConfigured: cfg.AIKey != "",
+		AIVision:     cfg.AIVision != "",
 		Crawler:      crawler.New(crawler.Options{HTTPClient: scannerClient}),
 		AI:           aiClient,
 		Policy:       policy,

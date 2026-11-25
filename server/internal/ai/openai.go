@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -27,10 +28,11 @@ type Options struct {
 
 // OpenAI — клиент для любого OpenAI-совместимого API.
 type OpenAI struct {
-	opts  Options
-	http  *http.Client
-	mu    sync.Mutex
-	cache map[string]LinkResult
+	opts       Options
+	http       *http.Client
+	mu         sync.Mutex
+	cache      map[string]LinkResult
+	imageCache map[string]ImageResult
 }
 
 func NewOpenAI(opts Options) *OpenAI {
@@ -46,14 +48,19 @@ func NewOpenAI(opts Options) *OpenAI {
 	}
 
 	return &OpenAI{
-		opts:  opts,
-		http:  &http.Client{Timeout: opts.Timeout},
-		cache: make(map[string]LinkResult),
+		opts:       opts,
+		http:       &http.Client{Timeout: opts.Timeout},
+		cache:      make(map[string]LinkResult),
+		imageCache: make(map[string]ImageResult),
 	}
 }
 
 func (c *OpenAI) Enabled() bool {
 	return c.opts.APIKey != "" && c.opts.TextModel != ""
+}
+
+func (c *OpenAI) ImageEnabled() bool {
+	return c.opts.APIKey != "" && c.opts.VisionModel != ""
 }
 
 func (c *OpenAI) CheckLink(ctx context.Context, req LinkRequest) (LinkResult, error) {
@@ -84,13 +91,47 @@ func (c *OpenAI) CheckLink(ctx context.Context, req LinkRequest) (LinkResult, er
 	return LinkResult{}, lastErr
 }
 
-func (c *OpenAI) CheckImage(_ context.Context, _ ImageRequest) (ImageResult, error) {
-	return ImageResult{}, errors.New("ai: проверка изображений не реализована (задача T16)")
+func (c *OpenAI) CheckImage(ctx context.Context, req ImageRequest) (ImageResult, error) {
+	if !c.ImageEnabled() {
+		return ImageResult{}, errors.New("ai: vision-модель не настроена")
+	}
+
+	key := imageCacheKey(req)
+	if res, ok := c.cachedImage(key); ok {
+		return res, nil
+	}
+
+	prompt := imagePrompt(req)
+	var lastErr error
+
+	for attempt := 0; attempt <= c.opts.MaxRetries; attempt++ {
+		res, err := c.doImage(ctx, prompt, req)
+		if err == nil {
+			c.storeImage(key, res)
+			return res, nil
+		}
+		lastErr = err
+		if !retryable(err) {
+			break
+		}
+	}
+
+	return ImageResult{}, lastErr
 }
 
 type chatMessage struct {
 	Role    string `json:"role"`
-	Content string `json:"content"`
+	Content any    `json:"content"`
+}
+
+type imageContentPart struct {
+	Type     string    `json:"type"`
+	Text     string    `json:"text,omitempty"`
+	ImageURL *imageURL `json:"image_url,omitempty"`
+}
+
+type imageURL struct {
+	URL string `json:"url"`
 }
 
 type responseFormat struct {
@@ -177,6 +218,123 @@ func (c *OpenAI) doLink(ctx context.Context, prompt string) (LinkResult, error) 
 	}
 
 	return parseLinkResult(strings.TrimSpace(decoded.Choices[0].Message.Content))
+}
+
+func (c *OpenAI) doImage(ctx context.Context, prompt string, req ImageRequest) (ImageResult, error) {
+	if len(req.Image) == 0 {
+		return ImageResult{}, errors.New("ai: пустое изображение")
+	}
+
+	mimeType := req.MimeType
+	if mimeType == "" {
+		mimeType = "image/png"
+	}
+
+	dataURL := "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(req.Image)
+	content := []imageContentPart{
+		{Type: "text", Text: prompt},
+		{Type: "image_url", ImageURL: &imageURL{URL: dataURL}},
+	}
+
+	body := chatRequest{
+		Model: c.opts.VisionModel,
+		Messages: []chatMessage{
+			{Role: "system", Content: "Ты эксперт по веб-доступности. Отвечай строго JSON без пояснений."},
+			{Role: "user", Content: content},
+		},
+		Temperature:    0.2,
+		ResponseFormat: &responseFormat{Type: "json_object"},
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return ImageResult{}, err
+	}
+
+	reqHTTP, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		c.opts.BaseURL+"/chat/completions",
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return ImageResult{}, err
+	}
+	reqHTTP.Header.Set("Content-Type", "application/json")
+	reqHTTP.Header.Set("Authorization", "Bearer "+c.opts.APIKey)
+
+	resp, err := c.http.Do(reqHTTP)
+	if err != nil {
+		return ImageResult{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return ImageResult{}, &httpError{Status: resp.StatusCode, Body: string(data)}
+	}
+
+	var decoded chatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return ImageResult{}, err
+	}
+	if len(decoded.Choices) == 0 {
+		return ImageResult{}, errors.New("ai: пустой ответ модели")
+	}
+
+	return parseImageResult(strings.TrimSpace(decoded.Choices[0].Message.Content))
+}
+
+func parseImageResult(content string) (ImageResult, error) {
+	var res ImageResult
+	if err := json.Unmarshal([]byte(content), &res); err == nil {
+		res.Verdict = strings.ToLower(strings.TrimSpace(res.Verdict))
+		return res, nil
+	}
+
+	start := strings.Index(content, "{")
+	end := strings.LastIndex(content, "}")
+	if start >= 0 && end > start {
+		if err := json.Unmarshal([]byte(content[start:end+1]), &res); err == nil {
+			res.Verdict = strings.ToLower(strings.TrimSpace(res.Verdict))
+			return res, nil
+		}
+	}
+
+	return ImageResult{}, fmt.Errorf("ai: не удалось разобрать ответ: %s", content)
+}
+
+func imagePrompt(req ImageRequest) string {
+	var b strings.Builder
+	b.WriteString("Оцени, соответствует ли alt изображению (WCAG 1.1.1). ")
+	b.WriteString("Верни JSON с полями: verdict (match, mismatch или unclear), ")
+	b.WriteString("reason (строка), suggested_alt (строка), confidence (0..1).\n")
+	fmt.Fprintf(&b, "Alt: %q\n", req.Alt)
+	if req.Context != "" {
+		fmt.Fprintf(&b, "Контекст страницы: %q\n", req.Context)
+	}
+	b.WriteString("Если alt пустой или описывает не то, что на картинке — verdict=mismatch и предложи короткий alt.")
+	return b.String()
+}
+
+func imageCacheKey(req ImageRequest) string {
+	hash := sha256.New()
+	hash.Write(req.Image)
+	hash.Write([]byte("\x00" + req.MimeType + "\x00" + req.Alt + "\x00" + req.Context))
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func (c *OpenAI) cachedImage(key string) (ImageResult, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	res, ok := c.imageCache[key]
+	return res, ok
+}
+
+func (c *OpenAI) storeImage(key string, res ImageResult) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.imageCache[key] = res
 }
 
 func parseLinkResult(content string) (LinkResult, error) {
