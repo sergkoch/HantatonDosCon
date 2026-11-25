@@ -6,5 +6,5 @@
     "keep": { "tokens": 10000 },
     "buffer": "25%"
   },
-  "instructions": ["docs/state.md"]
+  "instructions": ["docs/context.md", "docs/state.md"]
 }

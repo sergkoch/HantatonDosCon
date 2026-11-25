@@ -104,10 +104,13 @@ curl -s -X POST http://localhost:8080/api/scans \
   затем `sudo docker compose -f deploy/docker-compose.yml up -d --build`.
 - Ключи ИИ лежат в `deploy/.env` на сервере.
 
-## Состояние
+## Контекст и состояние
 
-Актуальный статус, блокеры и следующие шаги — `docs/state.md`
-(подключён через `instructions` в `opencode.jsonc`, загружается сам).
+Оба файла подключены через `instructions` в `opencode.jsonc` и загружаются сами:
+
+- `docs/context.md` — долговременные факты: GitHub и теневой бан, сервер,
+  домен и туннели, ИИ, принятые решения, чего не делать.
+- `docs/state.md` — актуальный статус, блокеры и следующие шаги.
 
 Коротко: основная функциональность в `main`; не смержена ветка
 `team/review-fixes`; домен `not-domain.ru` не открывается, потому что Cloud.ru
