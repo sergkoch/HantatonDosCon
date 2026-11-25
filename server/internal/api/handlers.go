@@ -104,7 +104,8 @@ func (h *handler) createScan(c *gin.Context) {
 	}
 
 	if err := h.store.Create(c.Request.Context(), scan); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		h.log.Error("store error", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
 	}
 
@@ -130,7 +131,8 @@ func (h *handler) listScans(c *gin.Context) {
 
 	scans, err := h.store.List(c.Request.Context(), targetURL, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		h.log.Error("store error", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
 	}
 	if scans == nil {
@@ -147,7 +149,8 @@ func (h *handler) downloadPDF(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		h.log.Error("store error", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
 	}
 
@@ -170,7 +173,8 @@ func (h *handler) getScan(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		h.log.Error("store error", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
 	}
 

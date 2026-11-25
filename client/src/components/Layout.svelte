@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { navigate } from "../lib/router.svelte";
+  import { getPath, isPlainClick, navigate } from "../lib/router.svelte";
   import { getTheme, toggleTheme } from "../lib/theme.svelte";
 
   let { children }: { children: Snippet } = $props();
 
   const theme = $derived(getTheme());
+  const path = $derived(getPath());
 
   const tactilePaths = [
     "0,12 9,12 9,26 3,26 3,34 0,34",
@@ -24,6 +25,7 @@
         class="brand"
         href="/"
         onclick={(event) => {
+          if (!isPlainClick(event)) return;
           event.preventDefault();
           navigate("/");
         }}
@@ -52,7 +54,9 @@
         <nav class="site-nav" aria-label="Основная навигация">
           <a
             href="/"
+            aria-current={path === "/" ? "page" : undefined}
             onclick={(event) => {
+              if (!isPlainClick(event)) return;
               event.preventDefault();
               navigate("/");
             }}
@@ -61,7 +65,9 @@
           </a>
           <a
             href="/history"
+            aria-current={path === "/history" ? "page" : undefined}
             onclick={(event) => {
+              if (!isPlainClick(event)) return;
               event.preventDefault();
               navigate("/history");
             }}
@@ -111,7 +117,7 @@
     </div>
   </header>
 
-  <main class="site-main" id="main">
+  <main class="site-main" id="main" tabindex="-1">
     {@render children()}
   </main>
 

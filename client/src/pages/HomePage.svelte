@@ -8,6 +8,7 @@
   let depth = $state(1);
   let error = $state("");
   let busy = $state(false);
+  let urlInput: HTMLInputElement;
 
   async function onSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -20,6 +21,7 @@
     } catch (cause) {
       error =
         cause instanceof Error ? cause.message : "Не удалось запустить проверку";
+      urlInput?.focus();
     } finally {
       busy = false;
     }
@@ -41,7 +43,12 @@
       и смысловые: описание не совпадает с картинкой, ссылка ведёт не туда.
     </p>
 
-    <form class="form" onsubmit={onSubmit} aria-describedby="scan-hint">
+    <form
+      class="form"
+      onsubmit={onSubmit}
+      aria-describedby={error ? "scan-hint scan-error" : "scan-hint"}
+      aria-busy={busy}
+    >
       <div class="field">
         <label class="field__label" for="url">Адрес сайта</label>
         <input
@@ -52,11 +59,13 @@
           inputmode="url"
           placeholder="https://example.ru"
           bind:value={url}
+          bind:this={urlInput}
+          aria-invalid={error ? "true" : undefined}
           required
         />
       </div>
 
-      <div class="field field--small">
+      <div class="field">
         <label class="field__label" for="depth">Глубина</label>
         <select class="select" id="depth" name="depth" bind:value={depth}>
           <option value={1}>1 — страница</option>
@@ -75,7 +84,7 @@
     </form>
 
     {#if error}
-      <p class="field__error" role="alert">{error}</p>
+      <p class="field__error" id="scan-error" role="alert">{error}</p>
     {/if}
   </section>
 

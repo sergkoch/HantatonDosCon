@@ -10,14 +10,14 @@ import (
 )
 
 var genericAlt = map[string]struct{}{
-	"картинка":   {},
+	"картинка":    {},
 	"изображение": {},
-	"фото":       {},
-	"рисунок":    {},
-	"image":      {},
-	"img":        {},
-	"picture":    {},
-	"photo":      {},
+	"фото":        {},
+	"рисунок":     {},
+	"image":       {},
+	"img":         {},
+	"picture":     {},
+	"photo":       {},
 }
 
 var imageExt = map[string]struct{}{

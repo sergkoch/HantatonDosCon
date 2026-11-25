@@ -41,6 +41,7 @@ services:
       AI_VISION_MODEL: ${AI_VISION_MODEL:-}
       SCAN_ALLOWED_HOSTS: ${SCAN_ALLOWED_HOSTS:-demo}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
     depends_on:
       db:
         condition: service_healthy

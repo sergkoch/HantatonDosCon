@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { listScans } from "../api";
-  import { navigate } from "../lib/router.svelte";
+  import { isPlainClick, navigate } from "../lib/router.svelte";
   import type { Scan } from "../types";
 
   let scans = $state<Scan[]>([]);
@@ -135,6 +135,7 @@
                   <a
                     href={`/report/${scan.id}`}
                     onclick={(event) => {
+                      if (!isPlainClick(event)) return;
                       event.preventDefault();
                       openReport(scan.id);
                     }}
@@ -153,6 +154,7 @@
       <a
         href="/"
         onclick={(event) => {
+          if (!isPlainClick(event)) return;
           event.preventDefault();
           navigate("/");
         }}

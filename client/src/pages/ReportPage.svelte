@@ -2,7 +2,7 @@
   import { getScan } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
-  import { navigate } from "../lib/router.svelte";
+  import { isPlainClick, navigate } from "../lib/router.svelte";
   import { kindLabel, scoreLabel } from "../lib/score";
   import type { Scan, Severity } from "../types";
 
@@ -16,20 +16,31 @@
 
   $effect(() => {
     let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    getScan(id)
-      .then((next) => {
-        if (active) scan = next;
-      })
-      .catch((cause: unknown) => {
-        if (active) {
-          error =
-            cause instanceof Error ? cause.message : "Не удалось получить отчёт";
+    scan = null;
+    error = "";
+
+    async function load() {
+      try {
+        const next = await getScan(id);
+        if (!active) return;
+        scan = next;
+        if (next.status === "queued" || next.status === "running") {
+          timer = setTimeout(load, 1500);
         }
-      });
+      } catch (cause) {
+        if (!active) return;
+        error =
+          cause instanceof Error ? cause.message : "Не удалось получить отчёт";
+      }
+    }
+
+    void load();
 
     return () => {
       active = false;
+      if (timer) clearTimeout(timer);
     };
   });
 
@@ -46,10 +57,28 @@
       : (scan?.findings.filter((finding) => finding.severity === filter) ?? []),
   );
 
+  function safeCell(value: string): string {
+    const text = value ?? "";
+    return /^[=+\-@]/.test(text) ? `'${text}` : text;
+  }
+
   function downloadCsv(current: Scan) {
     const rows = [
-      ["severity", "kind", "title", "element", "recommendation", "wcag"],
+      [
+        "scan_url",
+        "created_at",
+        "score",
+        "severity",
+        "kind",
+        "title",
+        "element",
+        "recommendation",
+        "wcag",
+      ],
       ...current.findings.map((finding) => [
+        current.url,
+        current.createdAt,
+        current.score === null ? "" : String(current.score),
         finding.severity,
         finding.kind,
         finding.title,
@@ -61,7 +90,9 @@
 
     const csv = rows
       .map((row) =>
-        row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(","),
+        row
+          .map((cell) => `"${safeCell(cell).replaceAll('"', '""')}"`)
+          .join(","),
       )
       .join("\n");
 
@@ -71,14 +102,20 @@
 
     link.href = url;
     link.download = `report-${current.id}.csv`;
+    document.body.append(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 </script>
 
 {#if error}
   <div class="container">
     <p class="field__error" role="alert">{error}</p>
+  </div>
+{:else if scan && scan.status !== "done" && scan.status !== "failed"}
+  <div class="container">
+    <p class="status" role="status">Проверка ещё идёт…</p>
   </div>
 {:else if scan}
   {@const current = scan}
@@ -95,6 +132,7 @@
               <a
                 href={`/report/${current.previousId}`}
                 onclick={(event) => {
+                  if (!isPlainClick(event)) return;
                   event.preventDefault();
                   navigate(`/report/${current.previousId}`);
                 }}

@@ -1,9 +1,19 @@
 import type { Scan } from "./types";
 
+const errorMessages: Record<string, string> = {
+  not_found: "Скан не найден",
+  invalid_input: "Проверьте адрес и глубину",
+  rate_limited: "Слишком много запросов, попробуйте позже",
+  internal_error: "Внутренняя ошибка. Попробуйте ещё раз",
+};
+
 async function readError(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { detail?: string; error?: string };
-    return body.detail ?? body.error ?? `Ошибка ${response.status}`;
+    if (body.error && errorMessages[body.error]) {
+      return errorMessages[body.error];
+    }
+    return body.detail ?? `Ошибка ${response.status}`;
   } catch {
     return `Ошибка ${response.status}`;
   }

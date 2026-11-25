@@ -9,20 +9,12 @@
       content="Проверка доступности изображений, PDF-документов и ссылок на сайтах"
     />
     <meta name="theme-color" content="#07080c" />
-    <script>
-      (function () {
-        try {
-          var stored = localStorage.getItem("theme");
-          document.documentElement.dataset.theme =
-            stored === "light" || stored === "dark" ? stored : "dark";
-        } catch (e) {
-          document.documentElement.dataset.theme = "dark";
-        }
-      })();
-    </script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="app"></div>
+    <noscript>Для работы сервиса нужен JavaScript.</noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
