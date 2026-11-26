@@ -252,20 +252,34 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p class="site-footer__contacts">
-        {t("footer.contacts")}
-        <span class="site-footer__contact">
-          {t("footer.nameAndrey")} — heisenba@mail.ru, +7 982 189 27 21
-        </span>
-        <span aria-hidden="true">·</span>
-        <span class="site-footer__contact">
-          {t("footer.nameKonstantin")} — shrekichevsk@gmail.com, +7 932 401 48 90
-        </span>
-        <span aria-hidden="true">·</span>
-        <span class="site-footer__contact">
-          Gayka.pon@mail.ru, +7 982 545-71-03
-        </span>
-      </p>
+      <p class="site-footer__contacts-title">{t("footer.contacts")}</p>
+      <ul class="site-footer__contacts">
+        <li class="site-footer__contact">
+          <span class="site-footer__contact-name">{t("footer.nameAndrey")}</span>
+          <span class="site-footer__contact-role">{t("footer.roleAndrey")}</span>
+          <span class="site-footer__contact-details">
+            heisenba@mail.ru · +7 982 189 27 21
+          </span>
+        </li>
+        <li class="site-footer__contact">
+          <span class="site-footer__contact-name"
+            >{t("footer.nameKonstantin")}</span
+          >
+          <span class="site-footer__contact-role"
+            >{t("footer.roleKonstantin")}</span
+          >
+          <span class="site-footer__contact-details">
+            shrekichevsk@gmail.com · +7 932 401 48 90
+          </span>
+        </li>
+        <li class="site-footer__contact">
+          <span class="site-footer__contact-name">{t("footer.nameSergey")}</span>
+          <span class="site-footer__contact-role">{t("footer.roleSergey")}</span>
+          <span class="site-footer__contact-details">
+            Gayka.pon@mail.ru · +7 982 545-71-03
+          </span>
+        </li>
+      </ul>
     </div>
   </footer>
 

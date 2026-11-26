@@ -19,7 +19,11 @@ const ru = {
   "layout.footer": "Учебный проект команды. Проверка доступности контента.",
   "footer.contacts": "Контакты команды:",
   "footer.nameAndrey": "Андрей",
+  "footer.roleAndrey": "ведущий программист",
   "footer.nameKonstantin": "Константин",
+  "footer.roleKonstantin": "дизайнер",
+  "footer.nameSergey": "Сергей",
+  "footer.roleSergey": "презентатор и программист",
 
   "home.badge": "Проверка доступности · WCAG",
   "home.titleBefore": "Сайт, который ",
@@ -180,7 +184,11 @@ const en: Record<MessageKey, string> = {
   "layout.footer": "Team training project. Content accessibility check.",
   "footer.contacts": "Team contacts:",
   "footer.nameAndrey": "Andrey",
+  "footer.roleAndrey": "lead programmer",
   "footer.nameKonstantin": "Konstantin",
+  "footer.roleKonstantin": "designer",
+  "footer.nameSergey": "Sergey",
+  "footer.roleSergey": "presenter and programmer",
 
   "home.badge": "Accessibility check · WCAG",
   "home.titleBefore": "A site that ",
