@@ -17,6 +17,13 @@ describe("scoreLabel", () => {
   it("handles a missing score", () => {
     expect(scoreLabel(null)).toBe("Проверка ещё идёт");
   });
+
+  it("returns English labels", () => {
+    expect(scoreLabel(90, "en")).toBe("Good");
+    expect(scoreLabel(60, "en")).toBe("Needs work");
+    expect(scoreLabel(20, "en")).toBe("Critical");
+    expect(scoreLabel(null, "en")).toBe("Scan in progress");
+  });
 });
 
 describe("kindLabel", () => {
@@ -24,5 +31,11 @@ describe("kindLabel", () => {
     expect(kindLabel("image")).toBe("Изображение");
     expect(kindLabel("pdf")).toBe("PDF");
     expect(kindLabel("link")).toBe("Ссылка");
+  });
+
+  it("translates finding kinds to English", () => {
+    expect(kindLabel("image", "en")).toBe("Image");
+    expect(kindLabel("page", "en")).toBe("Page");
+    expect(kindLabel("table", "en")).toBe("Table");
   });
 });

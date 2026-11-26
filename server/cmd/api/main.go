@@ -14,6 +14,8 @@ import (
 	"accessible-content/server/internal/api"
 	"accessible-content/server/internal/config"
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/pdf"
+	"accessible-content/server/internal/safehttp"
 	"accessible-content/server/internal/store"
 )
 
@@ -31,19 +33,49 @@ func main() {
 		})
 	}
 
-	memory := store.NewMemory()
+	policy := safehttp.NewPolicy(cfg.AllowedHosts)
+	scannerClient := safehttp.NewClient(policy, 30*time.Second)
+
+	var pdfAnalyzer pdf.Analyzer
+	pdfInstance, err := pdf.NewAnalyzer()
+	if err != nil {
+		log.Warn("pdf analyzer disabled", "error", err)
+	} else {
+		pdfAnalyzer = pdfInstance
+		defer pdfInstance.Close()
+	}
+
+	var scanStore store.Store = store.NewMemory()
+	if cfg.DatabaseURL != "" {
+		pgStore, storeErr := store.NewPostgres(context.Background(), cfg.DatabaseURL)
+		if storeErr != nil {
+			log.Warn("postgres unavailable, using memory store", "error", storeErr)
+		} else {
+			scanStore = pgStore
+			defer pgStore.Close()
+		}
+	}
+
 	handler := api.NewRouter(api.Options{
-		Store:        memory,
+		Store:        scanStore,
 		Log:          log,
 		AIConfigured: cfg.AIKey != "",
-		Crawler:      crawler.New(crawler.Options{}),
+		AIVision:     cfg.AIVision != "",
+		Crawler:      crawler.New(crawler.Options{HTTPClient: scannerClient}),
 		AI:           aiClient,
+		Policy:       policy,
+		HTTPClient:   scannerClient,
+		RateLimit:    cfg.RateLimitPerMinute,
+		PDF:          pdfAnalyzer,
 	})
 
 	server := &http.Server{
 		Addr:              cfg.Listen,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

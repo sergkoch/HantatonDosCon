@@ -7,17 +7,18 @@ import (
 	"unicode/utf8"
 
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/texts"
 )
 
 var genericAlt = map[string]struct{}{
-	"картинка":   {},
+	"картинка":    {},
 	"изображение": {},
-	"фото":       {},
-	"рисунок":    {},
-	"image":      {},
-	"img":        {},
-	"picture":    {},
-	"photo":      {},
+	"фото":        {},
+	"рисунок":     {},
+	"image":       {},
+	"img":         {},
+	"picture":     {},
+	"photo":       {},
 }
 
 var imageExt = map[string]struct{}{
@@ -31,10 +32,12 @@ var imageExt = map[string]struct{}{
 	".avif": {},
 }
 
-// AltChecker проверяет описания изображений (T12).
-type AltChecker struct{}
+// AltChecker проверяет описания изображений (T12). Lang задаёт язык находок.
+type AltChecker struct {
+	Lang texts.Lang
+}
 
-func (AltChecker) Check(page crawler.Page) []Finding {
+func (a AltChecker) Check(page crawler.Page) []Finding {
 	findings := make([]Finding, 0)
 
 	for _, img := range page.Images {
@@ -45,18 +48,18 @@ func (AltChecker) Check(page crawler.Page) []Finding {
 			findings = append(findings, Finding{
 				Code:           "IMG_ALT_MISSING",
 				Severity:       "critical",
-				Title:          "Нет alt у изображения",
+				Title:          texts.T(a.Lang, texts.AltMissingTitle),
 				Element:        fmt.Sprintf(`<img src="%s">`, img.Src),
-				Recommendation: "Добавьте описание, что на картинке. Если она декоративная — alt=\"\" и role=\"presentation\".",
+				Recommendation: texts.T(a.Lang, texts.AltMissingRec),
 				WCAG:           "1.1.1",
 			})
 		case alt == "" && img.InLink && strings.TrimSpace(img.LinkText) == "":
 			findings = append(findings, Finding{
 				Code:           "IMG_ALT_EMPTY_LINK",
 				Severity:       "critical",
-				Title:          "Изображение-ссылка без текстовой альтернативы",
+				Title:          texts.T(a.Lang, texts.AltEmptyLinkTitle),
 				Element:        fmt.Sprintf(`<a><img src="%s" alt=""></a>`, img.Src),
-				Recommendation: "Добавьте alt, который объясняет, куда ведёт ссылка, или текстовую подпись рядом с картинкой.",
+				Recommendation: texts.T(a.Lang, texts.AltEmptyLinkRec),
 				WCAG:           "1.1.1",
 			})
 		case alt == "":
@@ -65,18 +68,18 @@ func (AltChecker) Check(page crawler.Page) []Finding {
 			findings = append(findings, Finding{
 				Code:           "IMG_ALT_GENERIC",
 				Severity:       "warning",
-				Title:          "alt не описывает изображение",
+				Title:          texts.T(a.Lang, texts.AltGenericTitle),
 				Element:        fmt.Sprintf(`<img src="%s" alt="%s">`, img.Src, alt),
-				Recommendation: "Опишите, что изображено. Не подойдут «картинка», «фото» или имя файла.",
+				Recommendation: texts.T(a.Lang, texts.AltGenericRec),
 				WCAG:           "1.1.1",
 			})
 		case utf8.RuneCountInString(alt) > 125:
 			findings = append(findings, Finding{
 				Code:           "IMG_ALT_TOO_LONG",
 				Severity:       "warning",
-				Title:          "Слишком длинный alt",
+				Title:          texts.T(a.Lang, texts.AltTooLongTitle),
 				Element:        fmt.Sprintf(`<img src="%s" alt="%s">`, img.Src, alt),
-				Recommendation: "Сократите описание до 125 символов: короткое описание легче воспринять на слух.",
+				Recommendation: texts.T(a.Lang, texts.AltTooLongRec),
 				WCAG:           "1.1.1",
 			})
 		}

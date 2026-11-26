@@ -1,0 +1,20 @@
+-- +goose Up
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS previous_id uuid REFERENCES scans (id) ON DELETE SET NULL;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS pages_count integer NOT NULL DEFAULT 0;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS checked_links integer NOT NULL DEFAULT 0;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS unverified_links integer NOT NULL DEFAULT 0;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS error text NOT NULL DEFAULT '';
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS changes jsonb;
+
+CREATE INDEX IF NOT EXISTS scans_url_created_idx ON scans (url, created_at DESC);
+
+-- +goose Down
+DROP INDEX IF EXISTS scans_url_created_idx;
+ALTER TABLE scans DROP COLUMN IF EXISTS changes;
+ALTER TABLE scans DROP COLUMN IF EXISTS error;
+ALTER TABLE scans DROP COLUMN IF EXISTS unverified_links;
+ALTER TABLE scans DROP COLUMN IF EXISTS checked_links;
+ALTER TABLE scans DROP COLUMN IF EXISTS pages_count;
+ALTER TABLE scans DROP COLUMN IF EXISTS previous_id;
+ALTER TABLE scans DROP COLUMN IF EXISTS version;

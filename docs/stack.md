@@ -12,7 +12,7 @@
 | OCR | **Tesseract CLI** | офлайн, русский, без Python |
 | ИИ | **HTTP-клиент на Go** | vision и текст через API, без SDK |
 | БД | **PostgreSQL + pgx + goose** | надёжно, миграции, без ORM-магии |
-| Отчёт | **maroto + encoding/csv** | PDF и CSV на чистом Go |
+| Отчёт | **go-pdf/fpdf + encoding/csv** | PDF и CSV на чистом Go |
 | Интерфейс | **Svelte 5 + TypeScript + Vite** | браузер не умеет Go; Svelte компактнее и проще |
 | Деплой | **Docker Compose + nginx** | один сервер, без Kubernetes |
 
@@ -61,7 +61,7 @@ type Client interface {
 
 ## Отчёт
 
-- **PDF:** `maroto/v2` — таблицы, заголовки, цвета.
+- **PDF:** `go-pdf/fpdf` — текст, отступы, встроенный Go-шрифт с кириллицей.
 - **CSV:** стандартный `encoding/csv`.
 - **JSON:** стандартный `encoding/json`.
 
@@ -94,7 +94,7 @@ type Client interface {
 | pdfcpu | Apache 2.0 | можно |
 | Tesseract | Apache 2.0 | можно |
 | Gin | MIT | можно |
-| maroto | MIT | можно |
+| go-pdf/fpdf | MIT | можно |
 | Svelte | MIT | можно |
 
 ## PDF-спайк на день 1
