@@ -41,7 +41,16 @@
       и смысловые: описание не совпадает с картинкой, ссылка ведёт не туда.
     </p>
 
-    <form class="form" onsubmit={onSubmit} aria-describedby="scan-hint">
+    <form
+      class="form"
+      onsubmit={onSubmit}
+      aria-describedby="scan-hint"
+      {...{
+        toolname: "scan_website_accessibility",
+        tooldescription:
+          "Запускает проверку доступности сайта по URL и глубине обхода",
+      }}
+    >
       <div class="field">
         <label class="field__label" for="url">Адрес сайта</label>
         <input
@@ -52,13 +61,26 @@
           inputmode="url"
           placeholder="https://example.ru"
           bind:value={url}
+          {...{
+            toolparamdescription:
+              "Полный адрес сайта, начиная с http:// или https://",
+          }}
           required
         />
       </div>
 
       <div class="field field--small">
         <label class="field__label" for="depth">Глубина</label>
-        <select class="select" id="depth" name="depth" bind:value={depth}>
+        <select
+          class="select"
+          id="depth"
+          name="depth"
+          bind:value={depth}
+          {...{
+            toolparamdescription:
+              "Глубина обхода: 1 — одна страница, 2 — ссылки, 3 — глубже",
+          }}
+        >
           <option value={1}>1 — страница</option>
           <option value={2}>2 — ссылки</option>
           <option value={3}>3 — глубже</option>

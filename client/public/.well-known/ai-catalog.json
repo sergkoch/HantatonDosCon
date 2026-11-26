@@ -1,0 +1,56 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Доступный контент",
+    "documentationUrl": "https://not-domain.ru/",
+    "logoUrl": "https://not-domain.ru/logo.svg?v=1"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:not-domain.ru:accessibility-scanner:http-api",
+      "displayName": "Accessibility Scanner API",
+      "type": "application/json",
+      "data": {
+        "name": "Accessibility Scanner API",
+        "description": "Проверка доступности сайта: изображения, PDF, ссылки, формы, таблицы и заголовки.",
+        "baseUrl": "https://not-domain.ru/api",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/health",
+            "description": "Проверка состояния сервиса и наличия ИИ."
+          },
+          {
+            "method": "POST",
+            "path": "/scans",
+            "description": "Запуск проверки сайта. Тело: { url, depth }."
+          },
+          {
+            "method": "GET",
+            "path": "/scans/{id}",
+            "description": "Статус и находки проверки."
+          },
+          {
+            "method": "GET",
+            "path": "/scans/{id}/pdf",
+            "description": "PDF-отчёт по проверке."
+          }
+        ]
+      },
+      "description": "Сервис проверки доступности контента по WCAG: alt, PDF, ссылки, формы, таблицы, заголовки.",
+      "tags": ["accessibility", "wcag", "pdf", "crawler", "audit"],
+      "capabilities": [
+        "ScanWebsite",
+        "CheckAltText",
+        "CheckPdfAccessibility",
+        "CheckLinks"
+      ],
+      "representativeQueries": [
+        "проверить доступность сайта по WCAG",
+        "найти изображения без alt и PDF без тегов"
+      ],
+      "version": "0.1.0",
+      "updatedAt": "2026-11-25T00:00:00Z"
+    }
+  ]
+}
