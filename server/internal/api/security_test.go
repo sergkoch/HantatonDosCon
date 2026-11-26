@@ -38,6 +38,7 @@ func TestCreateScanRejectsPrivateTargets(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"`+target+`","depth":1}`))
 		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-Lang", "en")
 
 		router.ServeHTTP(recorder, request)
 
