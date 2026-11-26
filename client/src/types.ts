@@ -50,4 +50,6 @@ export type Scan = {
   changes?: Changes;
   findings: Finding[];
   createdAt: string;
+  /** Язык, на котором запускалась проверка. */
+  lang?: "ru" | "en";
 };

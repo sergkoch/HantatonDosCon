@@ -253,7 +253,7 @@
   <footer class="site-footer">
     <div class="container">
       <p class="site-footer__contacts">
-        Контакты команды:
+        {t("layout.contacts")}
         <a href="mailto:Gayka.pon@mail.ru">Gayka.pon@mail.ru</a>
         <span aria-hidden="true">·</span>
         <a href="tel:+79825457103">+7 982 545-71-03</a>

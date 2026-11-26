@@ -1,12 +1,14 @@
 import { clientID } from "./lib/clientId";
-import { getLocale } from "./lib/i18n.svelte";
+import { getLocale, t } from "./lib/i18n.svelte";
+import type { MessageKey } from "./lib/messages";
 import type { Scan } from "./types";
 
-const errorMessages: Record<string, string> = {
-  not_found: "Скан не найден",
-  invalid_input: "Проверьте адрес и глубину",
-  rate_limited: "Слишком много запросов, попробуйте позже",
-  internal_error: "Внутренняя ошибка. Попробуйте ещё раз",
+// Коды ошибок API → ключи сообщений. Текст берём из словаря текущего языка.
+const errorKeys: Record<string, MessageKey> = {
+  not_found: "error.notFound",
+  invalid_input: "error.invalidInput",
+  rate_limited: "error.rateLimited",
+  internal_error: "error.internal",
 };
 
 function requestHeaders(extra: Record<string, string> = {}): Record<string, string> {
@@ -16,12 +18,13 @@ function requestHeaders(extra: Record<string, string> = {}): Record<string, stri
 async function readError(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { detail?: string; error?: string };
-    if (body.error && errorMessages[body.error]) {
-      return errorMessages[body.error];
+    const key = body.error ? errorKeys[body.error] : undefined;
+    if (key) {
+      return t(key);
     }
-    return body.detail ?? `Ошибка ${response.status}`;
+    return body.detail ?? t("error.http", { status: response.status });
   } catch {
-    return `Ошибка ${response.status}`;
+    return t("error.http", { status: response.status });
   }
 }
 

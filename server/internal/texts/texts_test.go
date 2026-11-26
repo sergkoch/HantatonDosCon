@@ -4,14 +4,14 @@ import "testing"
 
 func TestParse(t *testing.T) {
 	cases := map[string]Lang{
-		"":                RU,
-		"ru":              RU,
-		"ru-RU":           RU,
-		"en":              EN,
-		"en-US":           EN,
-		"EN":              EN,
-		"de":              RU,
-		"en,ru;q=0.8":     EN,
+		"":            RU,
+		"ru":          RU,
+		"ru-RU":       RU,
+		"en":          EN,
+		"en-US":       EN,
+		"EN":          EN,
+		"de":          RU,
+		"en,ru;q=0.8": EN,
 	}
 
 	for raw, want := range cases {

@@ -5,6 +5,7 @@
   import Button from "../components/Button.svelte";
   import { isPlainClick, navigate } from "../lib/router.svelte";
   import { getLocale, t } from "../lib/i18n.svelte";
+  import { type Locale, type MessageKey, translate } from "../lib/messages";
   import { kindLabel, scoreLabel } from "../lib/score";
   import type { Scan, Severity } from "../types";
 
@@ -165,18 +166,25 @@
   }
 
   function downloadCsv(current: Scan) {
+    // Файл должен быть на одном языке: берём язык, на котором шёл скан.
+    const locale: Locale =
+      current.lang === "en" || current.lang === "ru"
+        ? current.lang
+        : getLocale();
+    const tr = (key: MessageKey) => translate(locale, key);
+
     const rows = [
       [
-        t("csv.severity"),
-        t("csv.kind"),
-        t("csv.title"),
-        t("csv.element"),
-        t("csv.recommendation"),
-        t("csv.wcag"),
+        tr("csv.severity"),
+        tr("csv.kind"),
+        tr("csv.title"),
+        tr("csv.element"),
+        tr("csv.recommendation"),
+        tr("csv.wcag"),
       ],
       ...current.findings.map((finding) => [
-        t(severityKeys[finding.severity]),
-        kindLabel(finding.kind, getLocale()),
+        tr(severityKeys[finding.severity]),
+        kindLabel(finding.kind, locale),
         finding.title,
         finding.element,
         finding.recommendation,
