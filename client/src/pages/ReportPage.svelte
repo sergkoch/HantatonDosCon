@@ -101,9 +101,17 @@
     { value: "warning", label: t("report.filterWarning") },
   ]);
 
-  // В списке — только проблемы (без «в порядке»).
+  // В списке — только проблемы (без «в порядке»), сначала критичные.
+  const severityRank: Record<Severity, number> = {
+    critical: 0,
+    warning: 1,
+    ok: 2,
+  };
+
   const problems = $derived(
-    (scan?.findings ?? []).filter((finding) => finding.severity !== "ok"),
+    (scan?.findings ?? [])
+      .filter((finding) => finding.severity !== "ok")
+      .sort((a, b) => severityRank[a.severity] - severityRank[b.severity]),
   );
 
   const findings = $derived(
