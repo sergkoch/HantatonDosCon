@@ -322,6 +322,7 @@ func (h *handler) runScan(initial store.Scan) {
 	score := checks.Score(primaryFindings)
 
 	scan.Findings = toStoreFindings(primaryFindings, secondaryFindings)
+	store.SortBySeverity(scan.Findings)
 	scan.Stats = store.Stats{Critical: critical, Warning: warning, OK: ok}
 	scan.CheckedLinks = len(linkResults)
 	scan.UnverifiedLinks = unverifiedLinks

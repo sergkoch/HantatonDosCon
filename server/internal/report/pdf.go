@@ -36,6 +36,11 @@ func WritePDF(w io.Writer, scan store.Scan, lang texts.Lang) error {
 		return primary
 	}
 
+	// Старые сканы могли сохранить находки вперемешку: сортируем копию.
+	findings := make([]store.Finding, len(scan.Findings))
+	copy(findings, scan.Findings)
+	store.SortBySeverity(findings)
+
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(15, 15, 15)
 	pdf.SetAutoPageBreak(true, 15)
@@ -90,11 +95,11 @@ func WritePDF(w io.Writer, scan store.Scan, lang texts.Lang) error {
 	pdf.SetFont("go", "B", 13)
 	pdf.CellFormat(0, 7, texts.T(lang, texts.PDFFindings), "", 1, "L", false, 0, "")
 
-	if len(scan.Findings) == 0 {
+	if len(findings) == 0 {
 		pdf.SetFont("go", "", 11)
 		pdf.MultiCell(0, 6, texts.T(lang, texts.PDFNoFindings), "", "L", false)
 	} else {
-		for i, finding := range scan.Findings {
+		for i, finding := range findings {
 			if pdf.GetY() > 255 {
 				pdf.AddPage()
 			}
