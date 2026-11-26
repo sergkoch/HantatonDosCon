@@ -167,7 +167,10 @@
 
   function downloadCsv(current: Scan) {
     // Файл должен быть на одном языке: берём язык, на котором шёл скан.
-    const locale: Locale = current.lang ?? getLocale();
+    const locale: Locale =
+      current.lang === "en" || current.lang === "ru"
+        ? current.lang
+        : getLocale();
     const tr = (key: MessageKey) => translate(locale, key);
 
     const rows = [
