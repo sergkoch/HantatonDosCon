@@ -1,13 +1,69 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { tick } from "svelte";
   import { navigate } from "../lib/router.svelte";
   import { getTheme, toggleTheme } from "../lib/theme.svelte";
-  import { getLocale, t, toggleLocale } from "../lib/i18n.svelte";
+  import { getLocale, setLocale, t } from "../lib/i18n.svelte";
 
   let { children }: { children: Snippet } = $props();
 
   const theme = $derived(getTheme());
   const locale = $derived(getLocale());
+
+  let langOpen = $state(false);
+  let langButton: HTMLButtonElement | undefined = $state();
+  let langMenu: HTMLDivElement | undefined = $state();
+
+  const languages = [
+    { value: "ru", label: "Русский", lang: "ru" },
+    { value: "en", label: "English", lang: "en" },
+  ] as const;
+
+  async function toggleLangMenu() {
+    langOpen = !langOpen;
+    if (langOpen) {
+      await tick();
+      langMenu?.querySelector<HTMLButtonElement>("button")?.focus();
+    }
+  }
+
+  function chooseLang(next: "ru" | "en") {
+    setLocale(next);
+    langOpen = false;
+    langButton?.focus();
+  }
+
+  function onWindowClick(event: MouseEvent) {
+    if (!langOpen) return;
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest(".lang")) {
+      langOpen = false;
+    }
+  }
+
+  function onWindowKeydown(event: KeyboardEvent) {
+    if (langOpen && event.key === "Escape") {
+      langOpen = false;
+      langButton?.focus();
+    }
+  }
+
+  function onMenuKeydown(event: KeyboardEvent) {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+
+    event.preventDefault();
+    const items = Array.from(
+      langMenu?.querySelectorAll<HTMLButtonElement>("button") ?? [],
+    );
+    if (items.length === 0) return;
+
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    const step = event.key === "ArrowDown" ? 1 : -1;
+    const next = (current + step + items.length) % items.length;
+    items[next]?.focus();
+  }
 
   $effect(() => {
     document.title = t("site.title");
@@ -24,6 +80,8 @@
     "100,62 92,62 92,72 100,72",
   ];
 </script>
+
+<svelte:window onclick={onWindowClick} onkeydown={onWindowKeydown} />
 
 <div class="site">
   <a class="skip-link" href="#main">{t("layout.skip")}</a>
@@ -67,17 +125,76 @@
           <a href="#how">{t("layout.navHow")}</a>
         </nav>
 
-        <button
-          class="theme-toggle lang-toggle"
-          type="button"
-          onclick={toggleLocale}
-          aria-label={t("layout.langSwitch")}
-          title={t("layout.langSwitch")}
-        >
-          <span lang={locale === "ru" ? "en" : "ru"}>
-            {locale === "ru" ? "EN" : "RU"}
-          </span>
-        </button>
+        <div class="lang">
+          <button
+            bind:this={langButton}
+            class="lang-button"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={langOpen}
+            aria-controls="lang-menu"
+            onclick={toggleLangMenu}
+          >
+            {t("layout.langButton")}
+            <svg
+              class={"lang-button__chevron" + (langOpen ? " is-open" : "")}
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          {#if langOpen}
+            <div
+              bind:this={langMenu}
+              class="lang-menu"
+              id="lang-menu"
+              role="menu"
+              tabindex="-1"
+              aria-label={t("layout.langMenu")}
+              onkeydown={onMenuKeydown}
+            >
+              {#each languages as item (item.value)}
+                <button
+                  class="lang-menu__item"
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={locale === item.value}
+                  onclick={() => chooseLang(item.value)}
+                >
+                  <span lang={item.lang}>{item.label}</span>
+                  {#if locale === item.value}
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="m5 13 4 4L19 7"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  {/if}
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
 
         <button
           class="theme-toggle"

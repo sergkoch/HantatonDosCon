@@ -14,7 +14,8 @@ const ru = {
   "layout.themeToDark": "Включить тёмную тему",
   "layout.themeLightTitle": "Светлая тема",
   "layout.themeDarkTitle": "Тёмная тема",
-  "layout.langSwitch": "Переключить язык на английский",
+  "layout.langButton": "Язык",
+  "layout.langMenu": "Выбор языка",
   "layout.footer": "Учебный проект команды. Проверка доступности контента.",
 
   "home.badge": "Проверка доступности · WCAG",
@@ -168,7 +169,8 @@ const en: Record<MessageKey, string> = {
   "layout.themeToDark": "Switch to dark theme",
   "layout.themeLightTitle": "Light theme",
   "layout.themeDarkTitle": "Dark theme",
-  "layout.langSwitch": "Switch language to Russian",
+  "layout.langButton": "Language",
+  "layout.langMenu": "Language selection",
   "layout.footer": "Team training project. Content accessibility check.",
 
   "home.badge": "Accessibility check · WCAG",
