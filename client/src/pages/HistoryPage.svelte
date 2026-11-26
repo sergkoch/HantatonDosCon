@@ -75,6 +75,10 @@
       class="form form--filter"
       onsubmit={submit}
       aria-label={t("history.filterLabel")}
+      {...{
+        toolname: "filter_scan_history",
+        tooldescription: "Фильтрует журнал проверок по точному адресу сайта",
+      }}
     >
       <div class="field">
         <label class="field__label" for="history-url"
@@ -88,6 +92,9 @@
           bind:value={query}
           placeholder="https://example.ru"
           inputmode="url"
+          {...{
+            toolparamdescription: "Адрес сайта, историю которого нужно показать",
+          }}
         />
       </div>
       <div class="actions">

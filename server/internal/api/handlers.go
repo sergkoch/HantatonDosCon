@@ -238,6 +238,13 @@ func (h *handler) getScan(c *gin.Context) {
 }
 
 func (h *handler) runScan(initial store.Scan) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			h.log.Error("scan panicked", "id", initial.ID, "panic", recovered)
+			h.fail(initial, "внутренняя ошибка при проверке")
+		}
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
@@ -255,19 +262,19 @@ func (h *handler) runScan(initial store.Scan) {
 	lang := texts.Parse(scan.Lang)
 
 	if h.crawler == nil {
-		h.fail(ctx, scan, texts.T(lang, texts.ScanNoCrawler))
+		h.fail(scan, texts.T(lang, texts.ScanNoCrawler))
 		return
 	}
 
 	pages, err := h.crawler.Crawl(ctx, scan.URL, scan.Depth)
 	if err != nil {
 		h.log.Error("crawl failed", "url", scan.URL, "error", err)
-		h.fail(ctx, scan, texts.T(lang, texts.ScanCrawlFailed))
+		h.fail(scan, texts.T(lang, texts.ScanCrawlFailed))
 		return
 	}
 
 	if len(pages) == 0 {
-		h.fail(ctx, scan, texts.T(lang, texts.ScanNoPages))
+		h.fail(scan, texts.T(lang, texts.ScanNoPages))
 		return
 	}
 
@@ -335,7 +342,12 @@ func (h *handler) runScan(initial store.Scan) {
 		}
 	}
 
-	if err := h.store.Update(ctx, scan); err != nil {
+	// Результат сохраняем отдельным коротким контекстом: скан мог израсходовать
+	// основной таймаут на обход и проверки.
+	saveCtx, saveCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer saveCancel()
+
+	if err := h.store.Update(saveCtx, scan); err != nil {
 		h.log.Error("update finished scan", "error", err)
 	}
 }
@@ -700,10 +712,16 @@ func linkAIFinding(suggested, element string, lang texts.Lang, detailed bool) ch
 	}
 }
 
-func (h *handler) fail(ctx context.Context, scan store.Scan, reason string) {
+func (h *handler) fail(scan store.Scan, reason string) {
 	h.log.Error("scan failed", "id", scan.ID, "reason", reason)
 	scan.Status = store.StatusFailed
 	scan.Error = reason
+
+	// Финальная запись идёт отдельным контекстом: основной контекст скана
+	// к этому моменту может быть уже отменён по таймауту.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	if err := h.store.Update(ctx, scan); err != nil {
 		h.log.Error("update failed scan", "error", err)
 	}
