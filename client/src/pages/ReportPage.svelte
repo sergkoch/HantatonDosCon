@@ -22,6 +22,11 @@
 
   const circumference = 2 * Math.PI * 68;
 
+  // Минимум, сколько экран «Проверяем сайт…» держится на экране.
+  // Быстрые сайты сканируются за доли секунды, и без этого анимация
+  // не успевает появиться.
+  const MIN_SCAN_VISUAL_MS = 900;
+
   // Опрашиваем скан, пока он не завершён (раньше это делала ScanPage).
   $effect(() => {
     scan = null;
@@ -30,14 +35,25 @@
 
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const startedAt = performance.now();
 
     async function load() {
       try {
         const next = await getScan(id);
         if (!active) return;
+
+        const finished = next.status === "done" || next.status === "failed";
+        if (finished) {
+          const left = MIN_SCAN_VISUAL_MS - (performance.now() - startedAt);
+          if (left > 0) {
+            await new Promise((resolve) => setTimeout(resolve, left));
+            if (!active) return;
+          }
+        }
+
         scan = next;
 
-        if (next.status !== "done" && next.status !== "failed") {
+        if (!finished) {
           timer = setTimeout(load, 1500);
         }
       } catch (cause) {
@@ -226,10 +242,6 @@
 {#if error}
   <div class="container">
     <p class="field__error" role="alert">{error}</p>
-  </div>
-{:else if scan && scan.status !== "done" && scan.status !== "failed"}
-  <div class="container">
-    <p class="status" role="status">{t("report.running")}</p>
   </div>
 {:else if scan && scan.status === "failed"}
   <div class="container">
