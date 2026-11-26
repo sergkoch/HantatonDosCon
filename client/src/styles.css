@@ -1581,20 +1581,37 @@ a:hover {
 }
 
 /* Контакты в футере */
+.site-footer__contacts-title {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 .site-footer__contacts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
+  list-style: none;
   margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
 }
 
-.site-footer__contacts a {
-  color: var(--accent);
+.site-footer__contact {
+  display: grid;
+  gap: 2px;
 }
 
-.site-footer__contacts a:hover {
-  color: var(--accent-ink);
+.site-footer__contact-name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.site-footer__contact-role {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.site-footer__contact-details {
+  color: var(--text);
 }
 
 /* Баннер согласия на куки */

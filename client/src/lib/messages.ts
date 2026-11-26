@@ -18,6 +18,12 @@ const ru = {
   "layout.langMenu": "Выбор языка",
   "layout.footer": "Учебный проект команды. Проверка доступности контента.",
   "layout.contacts": "Контакты команды:",
+  "footer.nameAndrey": "Андрей",
+  "footer.roleAndrey": "ведущий программист",
+  "footer.nameKonstantin": "Константин",
+  "footer.roleKonstantin": "дизайнер",
+  "footer.nameSergey": "Сергей",
+  "footer.roleSergey": "презентатор и программист",
 
   "cookie.label": "Использование файлов cookie",
   "cookie.text":
@@ -188,6 +194,12 @@ const en: Record<MessageKey, string> = {
   "layout.langMenu": "Language selection",
   "layout.footer": "Team training project. Content accessibility check.",
   "layout.contacts": "Team contacts:",
+  "footer.nameAndrey": "Andrey",
+  "footer.roleAndrey": "lead programmer",
+  "footer.nameKonstantin": "Konstantin",
+  "footer.roleKonstantin": "designer",
+  "footer.nameSergey": "Sergey",
+  "footer.roleSergey": "presenter and programmer",
 
   "cookie.label": "Cookie usage",
   "cookie.text":
