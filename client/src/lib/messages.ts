@@ -17,6 +17,9 @@ const ru = {
   "layout.langButton": "Язык",
   "layout.langMenu": "Выбор языка",
   "layout.footer": "Учебный проект команды. Проверка доступности контента.",
+  "footer.contacts": "Контакты команды:",
+  "footer.nameAndrey": "Андрей",
+  "footer.nameKonstantin": "Константин",
 
   "home.badge": "Проверка доступности · WCAG",
   "home.titleBefore": "Сайт, который ",
@@ -175,6 +178,9 @@ const en: Record<MessageKey, string> = {
   "layout.langButton": "Language",
   "layout.langMenu": "Language selection",
   "layout.footer": "Team training project. Content accessibility check.",
+  "footer.contacts": "Team contacts:",
+  "footer.nameAndrey": "Andrey",
+  "footer.nameKonstantin": "Konstantin",
 
   "home.badge": "Accessibility check · WCAG",
   "home.titleBefore": "A site that ",

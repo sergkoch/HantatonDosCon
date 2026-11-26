@@ -1589,12 +1589,8 @@ a:hover {
   margin: 0;
 }
 
-.site-footer__contacts a {
-  color: var(--accent);
-}
-
-.site-footer__contacts a:hover {
-  color: var(--accent-ink);
+.site-footer__contact {
+  color: var(--text);
 }
 
 /* Баннер согласия на куки */

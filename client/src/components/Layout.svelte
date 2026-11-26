@@ -253,10 +253,18 @@
   <footer class="site-footer">
     <div class="container">
       <p class="site-footer__contacts">
-        Контакты команды:
-        <a href="mailto:Gayka.pon@mail.ru">Gayka.pon@mail.ru</a>
+        {t("footer.contacts")}
+        <span class="site-footer__contact">
+          {t("footer.nameAndrey")} — heisenba@mail.ru, +7 982 189 27 21
+        </span>
         <span aria-hidden="true">·</span>
-        <a href="tel:+79825457103">+7 982 545-71-03</a>
+        <span class="site-footer__contact">
+          {t("footer.nameKonstantin")} — shrekichevsk@gmail.com, +7 932 401 48 90
+        </span>
+        <span aria-hidden="true">·</span>
+        <span class="site-footer__contact">
+          Gayka.pon@mail.ru, +7 982 545-71-03
+        </span>
       </p>
     </div>
   </footer>
