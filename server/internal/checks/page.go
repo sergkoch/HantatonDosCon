@@ -5,21 +5,24 @@ import (
 	"strings"
 
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/texts"
 )
 
 // PageChecker проверяет атрибуты страницы: язык, заголовок и структуру h1–h6.
-type PageChecker struct{}
+type PageChecker struct {
+	Lang texts.Lang
+}
 
-func (PageChecker) Check(page crawler.Page) []Finding {
+func (p PageChecker) Check(page crawler.Page) []Finding {
 	findings := make([]Finding, 0)
 
 	if strings.TrimSpace(page.Lang) == "" {
 		findings = append(findings, Finding{
 			Code:           "PAGE_LANG_MISSING",
 			Severity:       "warning",
-			Title:          "Не указан язык страницы",
+			Title:          texts.T(p.Lang, texts.PageLangTitle),
 			Element:        "<html>",
-			Recommendation: "Добавьте атрибут lang, например <html lang=\"ru\">: от него зависит произношение в скринридере.",
+			Recommendation: texts.T(p.Lang, texts.PageLangRec),
 			WCAG:           "3.1.1",
 		})
 	}
@@ -28,9 +31,9 @@ func (PageChecker) Check(page crawler.Page) []Finding {
 		findings = append(findings, Finding{
 			Code:           "PAGE_TITLE_MISSING",
 			Severity:       "warning",
-			Title:          "Нет заголовка страницы",
+			Title:          texts.T(p.Lang, texts.PageTitleTitle),
 			Element:        "<head>",
-			Recommendation: "Добавьте <title>: по нему ориентируются во вкладках и в списке страниц скринридера.",
+			Recommendation: texts.T(p.Lang, texts.PageTitleRec),
 			WCAG:           "2.4.2",
 		})
 	}
@@ -46,9 +49,9 @@ func (PageChecker) Check(page crawler.Page) []Finding {
 			findings = append(findings, Finding{
 				Code:           "PAGE_HEADING_SKIP",
 				Severity:       "warning",
-				Title:          fmt.Sprintf("Пропущен уровень заголовка: h%d → h%d", previous, heading.Level),
+				Title:          texts.Tf(p.Lang, texts.PageHeadingSkipTitle, previous, heading.Level),
 				Element:        headingElement(heading),
-				Recommendation: "Не пропускайте уровни: после h1 идёт h2, затем h3. Иначе структура страницы читается неверно.",
+				Recommendation: texts.T(p.Lang, texts.PageHeadingSkipRec),
 				WCAG:           "1.3.1",
 			})
 		}
@@ -59,9 +62,9 @@ func (PageChecker) Check(page crawler.Page) []Finding {
 		findings = append(findings, Finding{
 			Code:           "PAGE_H1_MISSING",
 			Severity:       "warning",
-			Title:          "Нет заголовка h1",
+			Title:          texts.T(p.Lang, texts.PageH1Title),
 			Element:        "<body>",
-			Recommendation: "Добавьте один h1 — главный заголовок страницы.",
+			Recommendation: texts.T(p.Lang, texts.PageH1Rec),
 			WCAG:           "1.3.1",
 		})
 	}
@@ -78,9 +81,11 @@ func headingElement(heading crawler.Heading) string {
 }
 
 // FormChecker проверяет, что у полей формы есть доступные подписи.
-type FormChecker struct{}
+type FormChecker struct {
+	Lang texts.Lang
+}
 
-func (FormChecker) Check(page crawler.Page) []Finding {
+func (f FormChecker) Check(page crawler.Page) []Finding {
 	findings := make([]Finding, 0)
 
 	for _, input := range page.Inputs {
@@ -91,9 +96,9 @@ func (FormChecker) Check(page crawler.Page) []Finding {
 		findings = append(findings, Finding{
 			Code:           "FORM_LABEL_MISSING",
 			Severity:       "critical",
-			Title:          "Поле формы без подписи",
+			Title:          texts.T(f.Lang, texts.FormLabelTitle),
 			Element:        inputElement(input),
-			Recommendation: "Свяжите поле с <label for=\"...\"> или добавьте aria-label. Placeholder не заменяет подпись.",
+			Recommendation: texts.T(f.Lang, texts.FormLabelRec),
 			WCAG:           "3.3.2",
 		})
 	}
@@ -128,9 +133,11 @@ func inputTag(kind string) string {
 }
 
 // TableChecker проверяет, что у таблиц есть заголовки столбцов.
-type TableChecker struct{}
+type TableChecker struct {
+	Lang texts.Lang
+}
 
-func (TableChecker) Check(page crawler.Page) []Finding {
+func (t TableChecker) Check(page crawler.Page) []Finding {
 	findings := make([]Finding, 0)
 
 	for i, table := range page.Tables {
@@ -141,9 +148,9 @@ func (TableChecker) Check(page crawler.Page) []Finding {
 		findings = append(findings, Finding{
 			Code:           "TABLE_HEADERS_MISSING",
 			Severity:       "warning",
-			Title:          fmt.Sprintf("Таблица без заголовков (№%d)", i+1),
+			Title:          texts.Tf(t.Lang, texts.TableHeadersTitle, i+1),
 			Element:        "<table>",
-			Recommendation: "Добавьте <th scope=\"col\"> или role=\"columnheader\": без заголовков непонятно, что означает каждая ячейка.",
+			Recommendation: texts.T(t.Lang, texts.TableHeadersRec),
 			WCAG:           "1.3.1",
 		})
 	}

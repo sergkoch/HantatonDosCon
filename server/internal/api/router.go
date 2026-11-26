@@ -20,6 +20,7 @@ type Options struct {
 	Store        store.Store
 	Log          *slog.Logger
 	AIConfigured bool
+	AIVision     bool
 	Crawler      crawler.Crawler
 	AI           ai.Client
 	Policy       *safehttp.Policy
@@ -32,6 +33,7 @@ type handler struct {
 	store        store.Store
 	log          *slog.Logger
 	aiConfigured bool
+	aiVision     bool
 	crawler      crawler.Crawler
 	aiClient     ai.Client
 	pdfAnalyzer  pdf.Analyzer
@@ -66,6 +68,7 @@ func NewRouter(opts Options) *gin.Engine {
 		store:        opts.Store,
 		log:          log,
 		aiConfigured: opts.AIConfigured,
+		aiVision:     opts.AIVision,
 		crawler:      opts.Crawler,
 		aiClient:     opts.AI,
 		httpClient:   httpClient,
@@ -101,7 +104,7 @@ func cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", origin)
 		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Client-ID")
 
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)

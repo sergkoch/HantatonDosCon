@@ -59,7 +59,7 @@ func (m *Memory) Update(_ context.Context, scan Scan) error {
 	return nil
 }
 
-func (m *Memory) List(_ context.Context, targetURL string, limit int) ([]Scan, error) {
+func (m *Memory) List(_ context.Context, targetURL, owner string, limit int) ([]Scan, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -67,6 +67,9 @@ func (m *Memory) List(_ context.Context, targetURL string, limit int) ([]Scan, e
 	m.mu.RLock()
 	scans := make([]Scan, 0, len(m.scans))
 	for _, scan := range m.scans {
+		if scan.Owner != owner {
+			continue
+		}
 		if targetURL != "" && scan.URL != targetURL {
 			continue
 		}
@@ -85,7 +88,7 @@ func (m *Memory) List(_ context.Context, targetURL string, limit int) ([]Scan, e
 	return scans, nil
 }
 
-func (m *Memory) LatestDone(_ context.Context, targetURL string) (Scan, error) {
+func (m *Memory) LatestDone(_ context.Context, targetURL, owner string) (Scan, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -93,7 +96,7 @@ func (m *Memory) LatestDone(_ context.Context, targetURL string) (Scan, error) {
 	found := false
 
 	for _, scan := range m.scans {
-		if scan.URL != targetURL || scan.Status != StatusDone {
+		if scan.URL != targetURL || scan.Status != StatusDone || scan.Owner != owner {
 			continue
 		}
 		if !found || scan.CreatedAt.After(latest.CreatedAt) {
