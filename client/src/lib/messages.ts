@@ -122,6 +122,7 @@ const ru = {
   "report.emptyFilter": "По этому фильтру находок нет.",
   "report.downloadCsv": "Скачать CSV",
   "report.downloadPdf": "Скачать PDF",
+  "report.pdfError": "Не удалось скачать PDF",
   "report.scanningTitle": "Проверяем сайт…",
   "report.scanningStatus": "Собираем страницы, ссылки и медиа…",
 
@@ -274,6 +275,7 @@ const en: Record<MessageKey, string> = {
   "report.emptyFilter": "No findings for this filter.",
   "report.downloadCsv": "Download CSV",
   "report.downloadPdf": "Download PDF",
+  "report.pdfError": "Could not download the PDF",
   "report.scanningTitle": "Checking the site…",
   "report.scanningStatus": "Collecting pages, links and media…",
 

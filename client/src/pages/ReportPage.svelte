@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getScan } from "../api";
+  import { getScan, getScanPdf } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
   import { navigate } from "../lib/router.svelte";
@@ -11,6 +11,7 @@
 
   let scan = $state<Scan | null>(null);
   let error = $state("");
+  let pdfError = $state("");
   let filter = $state<"all" | Severity>("all");
   let displayScore = $state(0);
 
@@ -112,6 +113,23 @@
     warning: "severity.warning",
     ok: "severity.ok",
   } as const;
+
+  async function downloadPdf(current: Scan) {
+    pdfError = "";
+
+    try {
+      const blob = await getScanPdf(current.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `report-${current.id}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (cause) {
+      pdfError = cause instanceof Error ? cause.message : t("report.pdfError");
+    }
+  }
 
   function downloadCsv(current: Scan) {
     const rows = [
@@ -384,14 +402,14 @@
         <Button type="button" onclick={() => downloadCsv(current)}>
           {t("report.downloadCsv")}
         </Button>
-        <a
-          class="button button--primary"
-          href={`/api/scans/${current.id}/pdf`}
-          download
-        >
+        <Button type="button" onclick={() => downloadPdf(current)}>
           {t("report.downloadPdf")}
-        </a>
+        </Button>
       </div>
+
+      {#if pdfError}
+        <p class="field__error" role="alert">{pdfError}</p>
+      {/if}
     </section>
   </div>
 {:else}
