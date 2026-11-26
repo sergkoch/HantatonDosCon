@@ -98,7 +98,7 @@
         }}
       >
         <span class="brand__mark" aria-hidden="true">
-          <img src="/logo.png" alt="" />
+          <img src="/logo.svg?v=1" alt="" width="34" height="34" />
         </span>
         {t("site.title")}
       </a>

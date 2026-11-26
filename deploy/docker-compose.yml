@@ -39,8 +39,14 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_TEXT_MODEL: ${AI_TEXT_MODEL:-}
       AI_VISION_MODEL: ${AI_VISION_MODEL:-}
-      SCAN_ALLOWED_HOSTS: ${SCAN_ALLOWED_HOSTS:-demo}
+      SCAN_ALLOWED_HOSTS: ${SCAN_ALLOWED_HOSTS:-demo,not-domain.ru,www.not-domain.ru}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
+    # Внутри сервера нет hairpin NAT: домен резолвится в публичный IP,
+    # до которого контейнер не дотянется. Через шлюз контейнер попадает
+    # в nginx на хосте, и скан собственного сайта работает.
+    extra_hosts:
+      - "not-domain.ru:host-gateway"
+      - "www.not-domain.ru:host-gateway"
     depends_on:
       db:
         condition: service_healthy
@@ -48,6 +54,13 @@ services:
         condition: service_completed_successfully
     expose:
       - "8080"
+
+  demo:
+    image: nginx:1.27-alpine
+    volumes:
+      - ../demo-site:/usr/share/nginx/html:ro
+    expose:
+      - "80"
 
   web:
     build:
