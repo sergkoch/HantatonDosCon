@@ -107,12 +107,25 @@
       : problems.filter((finding) => finding.severity === filter),
   );
 
+  const severityKeys = {
+    critical: "severity.critical",
+    warning: "severity.warning",
+    ok: "severity.ok",
+  } as const;
+
   function downloadCsv(current: Scan) {
     const rows = [
-      ["severity", "kind", "title", "element", "recommendation", "wcag"],
+      [
+        t("csv.severity"),
+        t("csv.kind"),
+        t("csv.title"),
+        t("csv.element"),
+        t("csv.recommendation"),
+        t("csv.wcag"),
+      ],
       ...current.findings.map((finding) => [
-        finding.severity,
-        finding.kind,
+        t(severityKeys[finding.severity]),
+        kindLabel(finding.kind, getLocale()),
         finding.title,
         finding.element,
         finding.recommendation,

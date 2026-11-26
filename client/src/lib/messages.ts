@@ -124,6 +124,13 @@ const ru = {
   "report.scanningTitle": "Проверяем сайт…",
   "report.scanningStatus": "Собираем страницы, ссылки и медиа…",
 
+  "csv.severity": "Критичность",
+  "csv.kind": "Тип",
+  "csv.title": "Что не так",
+  "csv.element": "Элемент",
+  "csv.recommendation": "Рекомендация",
+  "csv.wcag": "WCAG",
+
   "severity.critical": "Критично",
   "severity.warning": "Предупреждение",
   "severity.ok": "В порядке",
@@ -267,6 +274,13 @@ const en: Record<MessageKey, string> = {
   "report.downloadPdf": "Download PDF",
   "report.scanningTitle": "Checking the site…",
   "report.scanningStatus": "Collecting pages, links and media…",
+
+  "csv.severity": "Severity",
+  "csv.kind": "Type",
+  "csv.title": "What is wrong",
+  "csv.element": "Element",
+  "csv.recommendation": "Recommendation",
+  "csv.wcag": "WCAG",
 
   "severity.critical": "Critical",
   "severity.warning": "Warning",
