@@ -1417,6 +1417,27 @@ a:hover {
     animation: none;
   }
 
+  /* Без анимации круги оставались прозрачными — показываем их статично. */
+  .scan-visual__pulse {
+    opacity: 0.28;
+    transform: scale(0.72);
+  }
+
+  .scan-visual__pulse:nth-child(2) {
+    opacity: 0.18;
+    transform: scale(0.86);
+  }
+
+  .scan-visual__pulse:nth-child(3) {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+
+  .progress__bar {
+    width: 100%;
+    background: var(--accent);
+  }
+
   .card,
   .button,
   .score-ring__value,
