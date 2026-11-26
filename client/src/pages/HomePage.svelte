@@ -9,6 +9,7 @@
   let depth = $state(1);
   let error = $state("");
   let busy = $state(false);
+  let urlInput: HTMLInputElement;
 
   async function onSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -21,6 +22,7 @@
     } catch (cause) {
       error =
         cause instanceof Error ? cause.message : t("home.error");
+      urlInput?.focus();
     } finally {
       busy = false;
     }
@@ -46,7 +48,8 @@
     <form
       class="form"
       onsubmit={onSubmit}
-      aria-describedby="scan-hint"
+      aria-describedby={error ? "scan-hint scan-error" : "scan-hint"}
+      aria-busy={busy}
       {...{
         toolname: "scan_website_accessibility",
         tooldescription:
@@ -63,6 +66,8 @@
           inputmode="url"
           placeholder="https://example.ru"
           bind:value={url}
+          bind:this={urlInput}
+          aria-invalid={error ? "true" : undefined}
           {...{
             toolparamdescription:
               "Полный адрес сайта, начиная с http:// или https://",
@@ -99,7 +104,7 @@
     </form>
 
     {#if error}
-      <p class="field__error" role="alert">{error}</p>
+      <p class="field__error" id="scan-error" role="alert">{error}</p>
     {/if}
   </section>
 

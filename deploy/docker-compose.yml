@@ -41,6 +41,7 @@ services:
       AI_VISION_MODEL: ${AI_VISION_MODEL:-}
       SCAN_ALLOWED_HOSTS: ${SCAN_ALLOWED_HOSTS:-demo,not-domain.ru,www.not-domain.ru}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
     # Внутри сервера нет hairpin NAT: домен резолвится в публичный IP,
     # до которого контейнер не дотянется. Через шлюз контейнер попадает
     # в nginx на хосте, и скан собственного сайта работает.

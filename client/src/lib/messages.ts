@@ -86,6 +86,7 @@ const ru = {
 
   "report.error": "Не удалось получить отчёт",
   "report.scanEyebrow": "Проверка",
+  "report.running": "Проверка ещё идёт…",
   "report.failedFallback": "Проверка не удалась",
   "report.tryAgain": "Попробовать снова",
   "report.eyebrow": "Отчёт · проверка v{version}",
@@ -241,6 +242,7 @@ const en: Record<MessageKey, string> = {
 
   "report.error": "Could not load the report",
   "report.scanEyebrow": "Check",
+  "report.running": "The check is still running…",
   "report.failedFallback": "Scan failed",
   "report.tryAgain": "Try again",
   "report.eyebrow": "Report · scan v{version}",

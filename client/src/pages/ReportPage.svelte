@@ -3,7 +3,7 @@
   import { getScan, getScanPdf } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
-  import { navigate } from "../lib/router.svelte";
+  import { isPlainClick, navigate } from "../lib/router.svelte";
   import { getLocale, t } from "../lib/i18n.svelte";
   import { kindLabel, scoreLabel } from "../lib/score";
   import type { Scan, Severity } from "../types";
@@ -34,7 +34,6 @@
       try {
         const next = await getScan(id);
         if (!active) return;
-
         scan = next;
 
         if (next.status !== "done" && next.status !== "failed") {
@@ -112,6 +111,11 @@
       : problems.filter((finding) => finding.severity === filter),
   );
 
+  function safeCell(value: string): string {
+    const text = value ?? "";
+    return /^[=+\-@]/.test(text) ? `'${text}` : text;
+  }
+
   const severityKeys = {
     critical: "severity.critical",
     warning: "severity.warning",
@@ -182,7 +186,9 @@
 
     const csv = rows
       .map((row) =>
-        row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(","),
+        row
+          .map((cell) => `"${safeCell(cell).replaceAll('"', '""')}"`)
+          .join(","),
       )
       .join("\n");
 
@@ -192,8 +198,10 @@
 
     link.href = url;
     link.download = `report-${current.id}.csv`;
+    document.body.append(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 </script>
 
@@ -202,6 +210,10 @@
 {#if error}
   <div class="container">
     <p class="field__error" role="alert">{error}</p>
+  </div>
+{:else if scan && scan.status !== "done" && scan.status !== "failed"}
+  <div class="container">
+    <p class="status" role="status">{t("report.running")}</p>
   </div>
 {:else if scan && scan.status === "failed"}
   <div class="container">
@@ -245,6 +257,7 @@
               <a
                 href={`/report/${current.previousId}`}
                 onclick={(event) => {
+                  if (!isPlainClick(event)) return;
                   event.preventDefault();
                   navigate(`/report/${current.previousId}`);
                 }}

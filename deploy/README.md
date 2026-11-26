@@ -69,6 +69,8 @@ docker compose -f deploy/docker-compose.yml exec db \
 - `SCAN_ALLOWED_HOSTS` — хосты, которым разрешено ходить на приватные адреса.
   Для локального демо там стоит `demo`. В проде оставьте пустым.
 - `RATE_LIMIT_PER_MINUTE` — сколько сканов принимает API за минуту, по умолчанию 20.
+- `CORS_ORIGIN` — разрешённый origin для API. В проде укажите
+  `https://not-domain.ru`, в разработке можно оставить `*`.
 - `AI_BASE_URL`, `AI_API_KEY`, `AI_TEXT_MODEL`, `AI_VISION_MODEL` — доступ к ИИ.
   Без ключа проверки ИИ пропускаются.
 

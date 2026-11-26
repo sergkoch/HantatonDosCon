@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { tick } from "svelte";
-  import { navigate } from "../lib/router.svelte";
+  import { getPath, isPlainClick, navigate } from "../lib/router.svelte";
   import { getTheme, toggleTheme } from "../lib/theme.svelte";
   import { getLocale, setLocale, t } from "../lib/i18n.svelte";
   import CookieConsent from "./CookieConsent.svelte";
@@ -9,6 +9,8 @@
   let { children }: { children: Snippet } = $props();
 
   const theme = $derived(getTheme());
+  const path = $derived(getPath());
+
   const locale = $derived(getLocale());
 
   let langOpen = $state(false);
@@ -93,6 +95,7 @@
         class="brand"
         href="/"
         onclick={(event) => {
+          if (!isPlainClick(event)) return;
           event.preventDefault();
           navigate("/");
         }}
@@ -107,7 +110,9 @@
         <nav class="site-nav" aria-label={t("layout.navLabel")}>
           <a
             href="/"
+            aria-current={path === "/" ? "page" : undefined}
             onclick={(event) => {
+              if (!isPlainClick(event)) return;
               event.preventDefault();
               navigate("/");
             }}
@@ -116,7 +121,9 @@
           </a>
           <a
             href="/history"
+            aria-current={path === "/history" ? "page" : undefined}
             onclick={(event) => {
+              if (!isPlainClick(event)) return;
               event.preventDefault();
               navigate("/history");
             }}
@@ -239,7 +246,7 @@
     </div>
   </header>
 
-  <main class="site-main" id="main">
+  <main class="site-main" id="main" tabindex="-1">
     {@render children()}
   </main>
 

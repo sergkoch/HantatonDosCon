@@ -1,0 +1,8 @@
+.git
+.gitignore
+bin/
+tmp/
+pdfspike-out/
+*.test
+coverage.out
+Dockerfile
