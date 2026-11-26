@@ -58,7 +58,9 @@ func TestBrokenLinks(t *testing.T) {
 		{Href: server.URL + "/forbidden", Text: "закрыто"},
 	}
 
-	findings, checked, unverified := BrokenLinks(context.Background(), server.Client(), links, 10, texts.RU)
+	results := CheckLinks(context.Background(), server.Client(), links, 10)
+	findings, unverified := BrokenLinkFindings(results, texts.RU)
+	checked := len(results)
 	if len(findings) != 1 {
 		t.Fatalf("ожидали 1 находку, получили %d: %+v", len(findings), findings)
 	}

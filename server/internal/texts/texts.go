@@ -33,6 +33,14 @@ func FromHeaders(explicit, acceptLanguage string) Lang {
 	return Parse(acceptLanguage)
 }
 
+// Other возвращает второй поддерживаемый язык.
+func Other(lang Lang) Lang {
+	if Parse(string(lang)) == EN {
+		return RU
+	}
+	return EN
+}
+
 type Key string
 
 const (
@@ -81,6 +89,7 @@ const (
 	AIMatchRec            Key = "ai.match.rec"
 	AILinkTitle           Key = "ai.link.title"
 	AILinkRec             Key = "ai.link.rec"
+	AILinkRecPlain        Key = "ai.link.recPlain"
 	ScanNoCrawler         Key = "scan.fail.noCrawler"
 	ScanCrawlFailed       Key = "scan.fail.crawl"
 	ScanNoPages           Key = "scan.fail.noPages"
@@ -179,6 +188,7 @@ var catalog = map[Lang]map[Key]string{
 		AIMatchRec:      "Модель подтвердила, что alt соответствует изображению.",
 		AILinkTitle:     "Текст ссылки не соответствует цели",
 		AILinkRec:       "Предлагаемый текст: «%s».",
+		AILinkRecPlain:  "Модель считает, что текст ссылки не соответствует цели. Проверьте формулировку вручную.",
 
 		ScanNoCrawler:   "краулер не настроен",
 		ScanCrawlFailed: "краулер завершился ошибкой",
@@ -279,6 +289,7 @@ var catalog = map[Lang]map[Key]string{
 		AIMatchRec:      "The model confirmed that alt matches the image.",
 		AILinkTitle:     "Link text does not match its destination",
 		AILinkRec:       "Suggested text: “%s”.",
+		AILinkRecPlain:  "The model reports that the link text does not match its destination. Review the wording manually.",
 
 		ScanNoCrawler:   "crawler is not configured",
 		ScanCrawlFailed: "crawler failed",

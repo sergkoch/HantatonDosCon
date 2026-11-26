@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { getScan, getScanPdf } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
@@ -12,6 +13,9 @@
   let scan = $state<Scan | null>(null);
   let error = $state("");
   let pdfError = $state("");
+  let pdfOpen = $state(false);
+  let pdfButton: HTMLButtonElement | undefined = $state();
+  let pdfMenu: HTMLDivElement | undefined = $state();
   let filter = $state<"all" | Severity>("all");
   let displayScore = $state(0);
 
@@ -114,16 +118,41 @@
     ok: "severity.ok",
   } as const;
 
-  async function downloadPdf(current: Scan) {
+  async function togglePdfMenu() {
+    pdfOpen = !pdfOpen;
+    if (pdfOpen) {
+      await tick();
+      pdfMenu?.querySelector<HTMLButtonElement>("button")?.focus();
+    }
+  }
+
+  function onWindowClick(event: MouseEvent) {
+    if (!pdfOpen) return;
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest(".pdf-download")) {
+      pdfOpen = false;
+    }
+  }
+
+  function onWindowKeydown(event: KeyboardEvent) {
+    if (pdfOpen && event.key === "Escape") {
+      pdfOpen = false;
+      pdfButton?.focus();
+    }
+  }
+
+  async function downloadPdf(current: Scan, lang: "ru" | "en") {
     pdfError = "";
+    pdfOpen = false;
+    pdfButton?.focus();
 
     try {
-      const blob = await getScanPdf(current.id);
+      const blob = await getScanPdf(current.id, lang);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
 
       link.href = url;
-      link.download = `report-${current.id}.pdf`;
+      link.download = `report-${current.id}-${lang}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (cause) {
@@ -167,6 +196,8 @@
     URL.revokeObjectURL(url);
   }
 </script>
+
+<svelte:window onclick={onWindowClick} onkeydown={onWindowKeydown} />
 
 {#if error}
   <div class="container">
@@ -402,9 +433,66 @@
         <Button type="button" onclick={() => downloadCsv(current)}>
           {t("report.downloadCsv")}
         </Button>
-        <Button type="button" onclick={() => downloadPdf(current)}>
-          {t("report.downloadPdf")}
-        </Button>
+
+        <div class="pdf-download">
+          <button
+            bind:this={pdfButton}
+            class="button button--primary pdf-download__button"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={pdfOpen}
+            aria-controls="pdf-menu"
+            onclick={togglePdfMenu}
+          >
+            {t("report.downloadPdf")}
+            <svg
+              class={"pdf-download__chevron" + (pdfOpen ? " is-open" : "")}
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          {#if pdfOpen}
+            <div
+              bind:this={pdfMenu}
+              class="lang-menu"
+              id="pdf-menu"
+              role="menu"
+              tabindex="-1"
+              aria-label={t("report.pdfLanguage")}
+            >
+              <button
+                class="lang-menu__item"
+                type="button"
+                role="menuitemradio"
+                aria-checked={getLocale() === "ru"}
+                onclick={() => downloadPdf(current, "ru")}
+              >
+                <span lang="ru">Русский</span>
+              </button>
+              <button
+                class="lang-menu__item"
+                type="button"
+                role="menuitemradio"
+                aria-checked={getLocale() === "en"}
+                onclick={() => downloadPdf(current, "en")}
+              >
+                <span lang="en">English</span>
+              </button>
+            </div>
+          {/if}
+        </div>
       </div>
 
       {#if pdfError}

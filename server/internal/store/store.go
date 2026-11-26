@@ -34,6 +34,11 @@ type Finding struct {
 	Element        string   `json:"element"`
 	Recommendation string   `json:"recommendation"`
 	WCAG           string   `json:"wcag"`
+	// TitleAlt and RecommendationAlt hold the same text in the other supported
+	// language, so a report can be exported in either one. They are not exposed
+	// through the JSON API: the UI shows the scan language.
+	TitleAlt          string `json:"-"`
+	RecommendationAlt string `json:"-"`
 }
 
 type Stats struct {

@@ -236,7 +236,8 @@ func scanRow(row rowScanner) (Scan, error) {
 
 func (p *Postgres) findingsBy(ctx context.Context, scanID string) ([]Finding, error) {
 	rows, err := p.pool.Query(ctx, `
-		SELECT id::text, code, kind, severity, title, element, recommendation, wcag
+		SELECT id::text, code, kind, severity, title, element, recommendation, wcag,
+		       title_alt, recommendation_alt
 		FROM findings
 		WHERE scan_id = $1
 		ORDER BY created_at, id`, scanID)
@@ -252,6 +253,7 @@ func (p *Postgres) findingsBy(ctx context.Context, scanID string) ([]Finding, er
 		if err := rows.Scan(
 			&finding.ID, &finding.Code, &finding.Kind, &severity,
 			&finding.Title, &finding.Element, &finding.Recommendation, &finding.WCAG,
+			&finding.TitleAlt, &finding.RecommendationAlt,
 		); err != nil {
 			return nil, err
 		}
@@ -271,11 +273,11 @@ func insertFindings(ctx context.Context, tx pgx.Tx, scanID string, findings []Fi
 		_, err := tx.Exec(ctx, `
 			INSERT INTO findings (
 				id, scan_id, kind, severity, code, title, element,
-				recommendation, wcag, created_at
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+				recommendation, wcag, created_at, title_alt, recommendation_alt
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
 			uuid.NewString(), scanID, finding.Kind, string(finding.Severity),
 			finding.Code, finding.Title, finding.Element, finding.Recommendation,
-			finding.WCAG, createdAt,
+			finding.WCAG, createdAt, finding.TitleAlt, finding.RecommendationAlt,
 		)
 		if err != nil {
 			return err

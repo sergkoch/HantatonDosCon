@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"accessible-content/server/internal/store"
+	"accessible-content/server/internal/texts"
 )
 
 func TestWritePDF(t *testing.T) {
@@ -50,7 +51,7 @@ func TestWritePDF(t *testing.T) {
 	}
 
 	var buffer bytes.Buffer
-	if err := WritePDF(&buffer, scan); err != nil {
+	if err := WritePDF(&buffer, scan, texts.RU); err != nil {
 		t.Fatalf("WritePDF: %v", err)
 	}
 

@@ -19,12 +19,22 @@ func (PDFWriter) Write(w io.Writer, scan store.Scan, format Format) error {
 	if format != FormatPDF {
 		return fmt.Errorf("report: unsupported format %q", format)
 	}
-	return WritePDF(w, scan)
+	return WritePDF(w, scan, texts.Parse(scan.Lang))
 }
 
-// WritePDF renders a human-readable accessibility report in the scan language.
-func WritePDF(w io.Writer, scan store.Scan) error {
-	lang := texts.Parse(scan.Lang)
+// WritePDF renders a human-readable accessibility report in the requested
+// language. Findings keep the scan language plus a translation, so any of the
+// supported languages can be exported.
+func WritePDF(w io.Writer, scan store.Scan, lang texts.Lang) error {
+	lang = texts.Parse(string(lang))
+	scanLang := texts.Parse(scan.Lang)
+
+	pick := func(primary, alternative string) string {
+		if lang != scanLang && alternative != "" {
+			return alternative
+		}
+		return primary
+	}
 
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(15, 15, 15)
@@ -90,7 +100,7 @@ func WritePDF(w io.Writer, scan store.Scan) error {
 			}
 
 			pdf.SetFont("go", "B", 11)
-			pdf.MultiCell(0, 6, fmt.Sprintf("%d. %s · %s", i+1, severityText(finding.Severity, lang), finding.Title), "", "L", false)
+			pdf.MultiCell(0, 6, fmt.Sprintf("%d. %s · %s", i+1, severityText(finding.Severity, lang), pick(finding.Title, finding.TitleAlt)), "", "L", false)
 			pdf.SetFont("go", "", 10)
 
 			if finding.Kind != "" {
@@ -100,7 +110,7 @@ func WritePDF(w io.Writer, scan store.Scan) error {
 				pdf.MultiCell(0, 5, texts.T(lang, texts.PDFElement)+finding.Element, "", "L", false)
 			}
 			if finding.Recommendation != "" {
-				pdf.MultiCell(0, 5, texts.T(lang, texts.PDFRecommendation)+finding.Recommendation, "", "L", false)
+				pdf.MultiCell(0, 5, texts.T(lang, texts.PDFRecommendation)+pick(finding.Recommendation, finding.RecommendationAlt), "", "L", false)
 			}
 			if finding.WCAG != "" {
 				pdf.MultiCell(0, 5, "WCAG: "+finding.WCAG, "", "L", false)

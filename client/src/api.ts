@@ -62,8 +62,11 @@ export async function listScans(url = "", limit = 20): Promise<Scan[]> {
  * PDF-отчёт отдаётся только владельцу скана, поэтому качаем через fetch:
  * обычный переход по ссылке не отправит X-Client-ID.
  */
-export async function getScanPdf(id: string): Promise<Blob> {
-  const response = await fetch(`/api/scans/${id}/pdf`, {
+export async function getScanPdf(
+  id: string,
+  lang: "ru" | "en",
+): Promise<Blob> {
+  const response = await fetch(`/api/scans/${id}/pdf?lang=${lang}`, {
     headers: requestHeaders(),
   });
 
