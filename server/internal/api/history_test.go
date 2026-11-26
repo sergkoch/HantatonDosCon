@@ -162,3 +162,75 @@ func TestClientIDRejectsMalformedValue(t *testing.T) {
 		t.Fatalf("malformed identity must not see any history: %+v", scans)
 	}
 }
+
+func TestClearHistory(t *testing.T) {
+	memory := store.NewMemory()
+	now := time.Now().UTC()
+	for _, scan := range []store.Scan{
+		{ID: "a1", Owner: "browser-a", URL: "https://a.ru", Status: store.StatusDone, CreatedAt: now},
+		{ID: "b1", Owner: "browser-b", URL: "https://b.ru", Status: store.StatusDone, CreatedAt: now},
+	} {
+		if err := memory.Create(context.Background(), scan); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	router := NewRouter(Options{Store: memory, Log: slog.Default()})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodDelete, "/api/scans", nil)
+	request.Header.Set("X-Client-ID", "browser-a")
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+
+	var body struct {
+		Deleted int `json:"deleted"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Deleted != 1 {
+		t.Fatalf("expected 1 deleted scan, got %d", body.Deleted)
+	}
+
+	empty := httptest.NewRecorder()
+	emptyRequest := httptest.NewRequest(http.MethodGet, "/api/scans", nil)
+	emptyRequest.Header.Set("X-Client-ID", "browser-a")
+	router.ServeHTTP(empty, emptyRequest)
+
+	var scans []store.Scan
+	if err := json.Unmarshal(empty.Body.Bytes(), &scans); err != nil {
+		t.Fatal(err)
+	}
+	if len(scans) != 0 {
+		t.Fatalf("history must be empty after clearing: %+v", scans)
+	}
+
+	foreign := httptest.NewRecorder()
+	foreignRequest := httptest.NewRequest(http.MethodGet, "/api/scans", nil)
+	foreignRequest.Header.Set("X-Client-ID", "browser-b")
+	router.ServeHTTP(foreign, foreignRequest)
+
+	var foreignScans []store.Scan
+	if err := json.Unmarshal(foreign.Body.Bytes(), &foreignScans); err != nil {
+		t.Fatal(err)
+	}
+	if len(foreignScans) != 1 {
+		t.Fatalf("other browser history must stay: %+v", foreignScans)
+	}
+}
+
+func TestClearHistoryRequiresClientID(t *testing.T) {
+	router := NewRouter(Options{Store: store.NewMemory(), Log: slog.Default()})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodDelete, "/api/scans", nil)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 without client identity, got %d", recorder.Code)
+	}
+}

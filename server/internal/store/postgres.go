@@ -182,6 +182,16 @@ func (p *Postgres) LatestDone(ctx context.Context, targetURL, owner string) (Sca
 	return scan, nil
 }
 
+// DeleteByOwner удаляет сканы одного клиента; находки уходят каскадом.
+func (p *Postgres) DeleteByOwner(ctx context.Context, owner string) (int, error) {
+	tag, err := p.pool.Exec(ctx, `DELETE FROM scans WHERE owner_id = $1`, owner)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(tag.RowsAffected()), nil
+}
+
 type rowScanner interface {
 	Scan(dest ...any) error
 }

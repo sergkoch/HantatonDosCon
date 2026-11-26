@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { listScans } from "../api";
+  import { clearHistory, listScans } from "../api";
   import { isPlainClick, navigate } from "../lib/router.svelte";
   import { getLocale, t } from "../lib/i18n.svelte";
   import type { Scan } from "../types";
@@ -9,6 +9,25 @@
   let query = $state("");
   let error = $state("");
   let loading = $state(true);
+  let clearOpen = $state(false);
+  let clearing = $state(false);
+  let cleared = $state(0);
+
+  async function clearAll() {
+    clearing = true;
+    error = "";
+
+    try {
+      cleared = await clearHistory();
+      clearOpen = false;
+      await load();
+    } catch (cause) {
+      error = cause instanceof Error ? cause.message : t("history.clearError");
+      clearOpen = false;
+    } finally {
+      clearing = false;
+    }
+  }
 
   async function load(url = "") {
     loading = true;
@@ -170,7 +189,13 @@
       </div>
     {/if}
 
-    <div class="actions">
+    {#if cleared > 0}
+      <p class="status" aria-live="polite">
+        {t("history.cleared", { count: cleared })}
+      </p>
+    {/if}
+
+    <div class="actions actions--between">
       <a
         href="/"
         onclick={(event) => {
@@ -181,6 +206,42 @@
       >
         {t("history.newCheck")}
       </a>
+
+      {#if scans.length > 0}
+        {#if clearOpen}
+          <div
+            class="history-clear"
+            role="group"
+            aria-label={t("history.clearConfirm")}
+          >
+            <span class="history-clear__text">{t("history.clearConfirm")}</span>
+            <button
+              class="button button--danger"
+              type="button"
+              disabled={clearing}
+              onclick={clearAll}
+            >
+              {clearing ? t("history.clearing") : t("history.clearYes")}
+            </button>
+            <button
+              class="button"
+              type="button"
+              disabled={clearing}
+              onclick={() => (clearOpen = false)}
+            >
+              {t("history.clearNo")}
+            </button>
+          </div>
+        {:else}
+          <button
+            class="button button--danger"
+            type="button"
+            onclick={() => (clearOpen = true)}
+          >
+            {t("history.clear")}
+          </button>
+        {/if}
+      {/if}
     </div>
   </section>
 </div>
