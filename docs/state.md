@@ -39,17 +39,25 @@
 - Стек развёрнут, `ai=configured`, история работает, `/` и `/history` → 200.
 - Nginx настроен на `not-domain.ru`.
 
+## Домен и публичный доступ
+
+- `https://not-domain.ru` и `https://www.not-domain.ru` → 200, сертификат
+  Let's Encrypt выпущен 25.11.2026, действует до 23.02.2027, продление
+  автоматическое (`certbot.timer`).
+- `http://not-domain.ru` тоже работает; принудительный редирект на HTTPS
+  не включали.
+- Проверено снаружи: `curl -I https://not-domain.ru/`, `/api/health` → `ai: configured`,
+  UI монтируется, консоль без ошибок.
+- Прежний вывод «Cloud.ru не пускает 80/443» оказался неверным: порт 80 был
+  открыт, HTTPS не работал только потому, что не был выпущен сертификат
+  и nginx не слушал 443.
+- Туннель Cloudflare Quick (`cloudflared-quick`) больше не нужен. Через него
+  страница отдавалась пустой (JS обрезался), поэтому для проверок лучше
+  домен или SSH-порт-форвард.
+
 ## Блокеры
 
-1. **Домен.** Cloud.ru не пускает 80/443: снаружи открыт только SSH 22.
-   Нужно открыть порты в панели Cloud.ru (Security Group / NAT), затем
-   `certbot --nginx -d not-domain.ru -d www.not-domain.ru`.
-2. **Публичный доступ.** Пока работает через туннель Cloudflare Quick.
-   Адрес меняется при перезапуске, большие ответы иногда обрезаются.
-   Текущий адрес:
-   ```bash
-   ssh andrey@84.54.57.218 "sudo journalctl -u cloudflared-quick --no-pager -o cat | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1"
-   ```
+Нет.
 
 ## Осталось по ревью
 

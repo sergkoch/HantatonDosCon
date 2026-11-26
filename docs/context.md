@@ -54,8 +54,10 @@
 - Docker — только через `sudo docker ...`.
 - Compose-файл: `deploy/docker-compose.yml`; сервисы: `db`, `migrate`, `api`, `web`.
 - Переменные окружения compose читает из `deploy/.env` (не из корневого `.env`).
-- Наружу открыт только **SSH 22**. Порты 80 и 443 закрыты на стороне Cloud.ru,
-  хотя nginx слушает 80 и UFW выключен. Это не наша настройка.
+- Порт **80 открыт снаружи** и отдаёт приложение: `http://not-domain.ru` работает.
+  Порт 443 до 25.11.2026 не слушался вовсе (не было сертификата), поэтому
+  подключение отклонялось — это выглядело как «закрытые порты», но блокировки
+  на стороне Cloud.ru не было.
 
 ### Обновление сервера
 
@@ -72,25 +74,26 @@ curl -s http://localhost:8080/api/health
 
 ## 3. Домен и публичный доступ
 
-- Домен `not-domain.ru` зарегистрирован, DNS уже указывает на `84.54.57.218`.
-- Nginx на сервере настроен на `not-domain.ru` и проксирует на `localhost:8080`.
-- Домен не открывается, потому что Cloud.ru не пропускает 80/443.
-  Исправить может только владелец аккаунта Cloud.ru:
-  Security Group / NAT → разрешить входящие TCP 80 и 443 из `0.0.0.0/0`.
-- После открытия портов:
+- Домен `not-domain.ru` работает: `http://` и `https://` отдают приложение
+  (`200`), включая `www`.
+- Nginx на сервере настроен на `not-domain.ru` и проксирует на `localhost:8080`
+  (конфиг лежит в `/etc/nginx/sites-enabled/cool-domain.online`).
+- Сертификат Let's Encrypt выпущен 25.11.2026, действует до 23.02.2027,
+  продление автоматическое. Принудительный редирект HTTP→HTTPS не включён.
 
 ```bash
-sudo certbot --nginx -d not-domain.ru -d www.not-domain.ru
-curl -I https://not-domain.ru
+sudo certbot certificates                      # проверить срок
+sudo certbot renew --dry-run                   # проверить продление
+curl -I https://not-domain.ru                  # проверить снаружи
 ```
 
 ### Временный туннель
 
-Поднят `cloudflared` quick tunnel на `http://localhost:8080`:
+`cloudflared` quick tunnel на `http://localhost:8080` — **больше не нужен**,
+домен открывается напрямую. Сервис можно погасить:
 
 ```bash
-sudo systemctl status cloudflared-quick
-sudo journalctl -u cloudflared-quick --no-pager -o cat | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
+sudo systemctl disable --now cloudflared-quick
 ```
 
 Ограничения, уже проверенные на практике:
@@ -180,8 +183,8 @@ sudo journalctl -u cloudflared-quick --no-pager -o cat | grep -oE 'https://[a-z0
 Аккаунт heisenbaf в теневом бане: PR открывает sergkoch или shrekichevsk.
 Сервер 84.54.57.218, пользователь andrey, /opt/accessible-content,
 git от serega, docker через sudo, env в deploy/.env.
-Домен not-domain.ru не работает: Cloud.ru не пускает 80/443, открыт только SSH.
-Публичный доступ — временный туннель cloudflared-quick на localhost:8080.
+Домен not-domain.ru работает: http и https (Let's Encrypt, до 23.02.2027), www тоже.
+Сайт открыт снаружи, туннель cloudflared-quick больше не нужен.
 ИИ — DeepSeek (deepseek-flash, vision работает).
 Подробности: AGENTS.md, docs/context.md, docs/state.md.
 ```
