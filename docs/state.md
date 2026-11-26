@@ -15,6 +15,15 @@
 - PostgreSQL-хранилище при заданном `DATABASE_URL`.
 - Безопасность: SSRF-защита, лимиты, CORS, allowlist.
 - SEO: `robots.txt`, метатеги; Lighthouse 100/100/100.
+- Веб: SVG-логотип (1 КБ вместо 210), CSS встроен в HTML, страницы
+  `History`/`Report` грузятся лениво, статика кешируется на год, `index.html`
+  без кеша. `llms.txt`, `/.well-known/ai-catalog.json`, WebMCP-аннотации форм.
+- Заголовки безопасности в контейнере (`client/security-headers.conf`):
+  CSP с хешем инлайн-скрипта, HSTS, XFO, XCTO, Referrer-Policy,
+  Permissions-Policy, COOP/CORP. HSTS также на хосте.
+- Статический каркас в `index.html`: заголовки и регионы видны без JS.
+- API: лимит запросов по IP плюс общий потолок, финальная запись скана
+  идёт отдельным контекстом, паника в горутине не оставляет скан в `running`.
 
 ## Влитые PR
 
@@ -32,6 +41,12 @@
   favicon/noscript, CI.
 - PR нужно открыть от `sergkoch` или `shrekichevsk`:
   `https://github.com/sergkoch/HantatonDosCon/compare/main...team/review-fixes?expand=1`
+- `task/site-fixes` — 17 пунктов из отчёта Lighthouse/securityheaders/a11y:
+  логотип, кеш, инлайн CSS, ленивые страницы, `llms.txt`, `ai-catalog.json`,
+  CSP и заголовки, статический каркас, контраст, WebMCP; плюс `demo`-сервис,
+  самопроверка домена, лимит по IP. Уже развёрнуто на сервере с ветки.
+  PR нужно открыть от `sergkoch` или `shrekichevsk`:
+  `https://github.com/sergkoch/HantatonDosCon/compare/main...team/site-fixes?expand=1`
 
 ## Сервер
 
@@ -44,8 +59,8 @@
 - `https://not-domain.ru` и `https://www.not-domain.ru` → 200, сертификат
   Let's Encrypt выпущен 25.11.2026, действует до 23.02.2027, продление
   автоматическое (`certbot.timer`).
-- `http://not-domain.ru` тоже работает; принудительный редирект на HTTPS
-  не включали.
+- `http://not-domain.ru` тоже работает и отдаёт `301` на `https://`
+  (редирект включён 26.11.2026 в конфиге хоста).
 - Проверено снаружи: `curl -I https://not-domain.ru/`, `/api/health` → `ai: configured`,
   UI монтируется, консоль без ошибок.
 - Прежний вывод «Cloud.ru не пускает 80/443» оказался неверным: порт 80 был
@@ -54,6 +69,18 @@
 - Туннель Cloudflare Quick (`cloudflared-quick`) больше не нужен. Через него
   страница отдавалась пустой (JS обрезался), поэтому для проверок лучше
   домен или SSH-порт-форвард.
+
+## Демо-сайт и самопроверка
+
+- Сервис `demo` (nginx со статикой `demo-site/`) добавлен в compose 26.11.2026.
+  Скан `http://demo/` работает: оценка 20, 5 критичных находок, включая
+  `IMG_ALT_AI_MISMATCH` и PDF-проверки.
+- Скан собственного домена работает: `https://not-domain.ru/` → 100, находок нет.
+  Домен добавлен в `SCAN_ALLOWED_HOSTS` по умолчанию в compose.
+- Сервер не может достучаться до своего публичного IP (нет hairpin NAT).
+  Лечится `extra_hosts: not-domain.ru:host-gateway` у контейнера `api`.
+- Проверять домен снаружи нужно с рабочей машины, а не с сервера:
+  изнутри `curl https://not-domain.ru` уходит в таймаут.
 
 ## Блокеры
 

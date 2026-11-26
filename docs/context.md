@@ -52,7 +52,8 @@
 - Репозиторий: `/opt/accessible-content`, владелец `serega`.
 - Git на сервере — только от `serega`: `sudo -u serega git ...`.
 - Docker — только через `sudo docker ...`.
-- Compose-файл: `deploy/docker-compose.yml`; сервисы: `db`, `migrate`, `api`, `web`.
+- Compose-файл: `deploy/docker-compose.yml`; сервисы: `db`, `migrate`, `api`,
+  `web`, `demo` (статика `demo-site/`, доступна сканеру как `http://demo/`).
 - Переменные окружения compose читает из `deploy/.env` (не из корневого `.env`).
 - Порт **80 открыт снаружи** и отдаёт приложение: `http://not-domain.ru` работает.
   Порт 443 до 25.11.2026 не слушался вовсе (не было сертификата), поэтому
