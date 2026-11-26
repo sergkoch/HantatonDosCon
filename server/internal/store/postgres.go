@@ -54,11 +54,11 @@ func (p *Postgres) Create(ctx context.Context, scan Scan) error {
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO scans (
-			id, url, depth, status, version, previous_id, score,
+			id, owner_id, url, depth, status, version, previous_id, score,
 			pages_count, checked_links, unverified_links, error,
 			stats, changes, created_at, finished_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-		scan.ID, scan.URL, scan.Depth, string(scan.Status), scan.Version,
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+		scan.ID, scan.Owner, scan.URL, scan.Depth, string(scan.Status), scan.Version,
 		nullableUUID(scan.PreviousID), scan.Score, scan.Pages,
 		scan.CheckedLinks, scan.UnverifiedLinks, scan.Error,
 		statsJSON, changesJSON, scan.CreatedAt, finishedAt(scan),
@@ -136,19 +136,19 @@ func (p *Postgres) Update(ctx context.Context, scan Scan) error {
 	return tx.Commit(ctx)
 }
 
-func (p *Postgres) List(ctx context.Context, targetURL string, limit int) ([]Scan, error) {
+func (p *Postgres) List(ctx context.Context, targetURL, owner string, limit int) ([]Scan, error) {
 	if limit <= 0 {
 		limit = 20
 	}
 
 	rows, err := p.pool.Query(ctx, `
-		SELECT id::text, url, depth, status, version, COALESCE(previous_id::text, ''),
+		SELECT id::text, owner_id, url, depth, status, version, COALESCE(previous_id::text, ''),
 		       score, pages_count, checked_links, unverified_links, error,
 		       stats, changes, created_at
 		FROM scans
-		WHERE ($1 = '' OR url = $1)
+		WHERE ($1 = '' OR url = $1) AND ($2 = '' OR owner_id = $2)
 		ORDER BY created_at DESC
-		LIMIT $2`, targetURL, limit)
+		LIMIT $3`, targetURL, owner, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -167,8 +167,8 @@ func (p *Postgres) List(ctx context.Context, targetURL string, limit int) ([]Sca
 	return scans, rows.Err()
 }
 
-func (p *Postgres) LatestDone(ctx context.Context, targetURL string) (Scan, error) {
-	scan, err := p.scanBy(ctx, `WHERE url = $1 AND status = 'done' ORDER BY created_at DESC LIMIT 1`, targetURL)
+func (p *Postgres) LatestDone(ctx context.Context, targetURL, owner string) (Scan, error) {
+	scan, err := p.scanBy(ctx, `WHERE url = $1 AND status = 'done' AND owner_id = $2 ORDER BY created_at DESC LIMIT 1`, targetURL, owner)
 	if err != nil {
 		return Scan{}, err
 	}
@@ -188,7 +188,7 @@ type rowScanner interface {
 
 func (p *Postgres) scanBy(ctx context.Context, where string, args ...any) (Scan, error) {
 	row := p.pool.QueryRow(ctx, `
-		SELECT id::text, url, depth, status, version, COALESCE(previous_id::text, ''),
+		SELECT id::text, owner_id, url, depth, status, version, COALESCE(previous_id::text, ''),
 		       score, pages_count, checked_links, unverified_links, error,
 		       stats, changes, created_at
 		FROM scans `+where, args...)
@@ -210,7 +210,7 @@ func scanRow(row rowScanner) (Scan, error) {
 	)
 
 	err := row.Scan(
-		&scan.ID, &scan.URL, &scan.Depth, &status, &scan.Version, &previousID,
+		&scan.ID, &scan.Owner, &scan.URL, &scan.Depth, &status, &scan.Version, &previousID,
 		&scan.Score, &scan.Pages, &scan.CheckedLinks, &scan.UnverifiedLinks,
 		&scan.Error, &statsJSON, &changesJSON, &scan.CreatedAt,
 	)

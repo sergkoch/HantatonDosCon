@@ -48,6 +48,36 @@ type createScanRequest struct {
 	Depth int    `json:"depth"`
 }
 
+// clientIDHeader carries an anonymous browser identity. History and reports
+// are scoped to it, so every visitor sees only their own scans.
+const clientIDHeader = "X-Client-ID"
+
+// clientID returns the caller identity or an empty string when the header is
+// missing or malformed. Empty identity means "no client" and keeps its scans
+// separate from every real browser.
+func clientID(c *gin.Context) string {
+	raw := strings.TrimSpace(c.GetHeader(clientIDHeader))
+	if len(raw) < 8 || len(raw) > 64 {
+		return ""
+	}
+	for _, r := range raw {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r >= '0' && r <= '9':
+		case r == '-' || r == '_':
+		default:
+			return ""
+		}
+	}
+
+	return raw
+}
+
+func isOwner(scan store.Scan, owner string) bool {
+	return scan.Owner == owner
+}
+
 func (h *handler) createScan(c *gin.Context) {
 	var request createScanRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -85,15 +115,18 @@ func (h *handler) createScan(c *gin.Context) {
 		return
 	}
 
+	owner := clientID(c)
+
 	version := 1
 	previousID := ""
-	if previous, findErr := h.store.LatestDone(c.Request.Context(), parsed.String()); findErr == nil {
+	if previous, findErr := h.store.LatestDone(c.Request.Context(), parsed.String(), owner); findErr == nil {
 		version = previous.Version + 1
 		previousID = previous.ID
 	}
 
 	scan := store.Scan{
 		ID:         uuid.NewString(),
+		Owner:      owner,
 		URL:        parsed.String(),
 		Depth:      request.Depth,
 		Status:     store.StatusQueued,
@@ -128,7 +161,7 @@ func (h *handler) listScans(c *gin.Context) {
 		limit = 100
 	}
 
-	scans, err := h.store.List(c.Request.Context(), targetURL, limit)
+	scans, err := h.store.List(c.Request.Context(), targetURL, clientID(c), limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
 		return
@@ -148,6 +181,10 @@ func (h *handler) downloadPDF(c *gin.Context) {
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		return
+	}
+	if !isOwner(scan, clientID(c)) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
 		return
 	}
 
@@ -171,6 +208,11 @@ func (h *handler) getScan(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		return
+	}
+
+	if !isOwner(scan, clientID(c)) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
 		return
 	}
 

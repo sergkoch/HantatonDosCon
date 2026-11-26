@@ -51,7 +51,10 @@ type Changes struct {
 }
 
 type Scan struct {
-	ID              string    `json:"id"`
+	ID string `json:"id"`
+	// Owner is the anonymous client that started the scan. It is never exposed
+	// in API responses: history and reports stay private to that client.
+	Owner           string    `json:"-"`
 	URL             string    `json:"url"`
 	Depth           int       `json:"depth"`
 	Status          Status    `json:"status"`
@@ -72,8 +75,9 @@ type Store interface {
 	Create(ctx context.Context, scan Scan) error
 	Get(ctx context.Context, id string) (Scan, error)
 	Update(ctx context.Context, scan Scan) error
-	// List returns scans, newest first. An empty targetURL means all URLs.
-	List(ctx context.Context, targetURL string, limit int) ([]Scan, error)
-	// LatestDone returns the most recent completed scan for a URL.
-	LatestDone(ctx context.Context, targetURL string) (Scan, error)
+	// List returns scans of one owner, newest first. An empty targetURL means
+	// all URLs; an empty owner means scans created without a client identity.
+	List(ctx context.Context, targetURL, owner string, limit int) ([]Scan, error)
+	// LatestDone returns the most recent completed scan of a URL for one owner.
+	LatestDone(ctx context.Context, targetURL, owner string) (Scan, error)
 }
