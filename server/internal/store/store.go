@@ -58,6 +58,7 @@ type Scan struct {
 	URL             string    `json:"url"`
 	Depth           int       `json:"depth"`
 	Status          Status    `json:"status"`
+	Lang            string    `json:"lang"`
 	Version         int       `json:"version"`
 	PreviousID      string    `json:"previousId,omitempty"`
 	Score           *int      `json:"score"`

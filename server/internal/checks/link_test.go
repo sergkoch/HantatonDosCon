@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/texts"
 )
 
 func TestLinkChecker(t *testing.T) {
@@ -57,7 +58,7 @@ func TestBrokenLinks(t *testing.T) {
 		{Href: server.URL + "/forbidden", Text: "закрыто"},
 	}
 
-	findings, checked, unverified := BrokenLinks(context.Background(), server.Client(), links, 10)
+	findings, checked, unverified := BrokenLinks(context.Background(), server.Client(), links, 10, texts.RU)
 	if len(findings) != 1 {
 		t.Fatalf("ожидали 1 находку, получили %d: %+v", len(findings), findings)
 	}

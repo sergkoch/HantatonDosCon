@@ -17,6 +17,7 @@ import (
 	"accessible-content/server/internal/crawler"
 	"accessible-content/server/internal/report"
 	"accessible-content/server/internal/store"
+	"accessible-content/server/internal/texts"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -78,21 +79,28 @@ func isOwner(scan store.Scan, owner string) bool {
 	return scan.Owner == owner
 }
 
+// requestLang выбирает язык ответа из заголовков запроса.
+func requestLang(c *gin.Context) texts.Lang {
+	return texts.FromHeaders(c.GetHeader("X-Lang"), c.GetHeader("Accept-Language"))
+}
+
 func (h *handler) createScan(c *gin.Context) {
+	lang := requestLang(c)
+
 	var request createScanRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		var maxErr *http.MaxBytesError
 		if errors.As(err, &maxErr) {
-			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "invalid_input", "detail": "request body too large"})
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "invalid_input", "detail": texts.T(lang, texts.ErrBodyTooLarge)})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.T(lang, texts.ErrInvalidJSON)})
 		return
 	}
 
 	parsed, err := url.ParseRequestURI(request.URL)
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": "url must be http or https"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.T(lang, texts.ErrURLScheme)})
 		return
 	}
 
@@ -101,7 +109,7 @@ func (h *handler) createScan(c *gin.Context) {
 		validateErr := h.policy.ValidateURL(validateCtx, parsed.String())
 		cancel()
 		if validateErr != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": "url must be public"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.T(lang, texts.ErrURLPublic)})
 			return
 		}
 	}
@@ -111,7 +119,7 @@ func (h *handler) createScan(c *gin.Context) {
 	}
 
 	if request.Depth < 1 || request.Depth > 3 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": "depth must be between 1 and 3"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.T(lang, texts.ErrDepthRange)})
 		return
 	}
 
@@ -130,6 +138,7 @@ func (h *handler) createScan(c *gin.Context) {
 		URL:        parsed.String(),
 		Depth:      request.Depth,
 		Status:     store.StatusQueued,
+		Lang:       string(lang),
 		Version:    version,
 		PreviousID: previousID,
 		Findings:   []store.Finding{},
@@ -137,7 +146,8 @@ func (h *handler) createScan(c *gin.Context) {
 	}
 
 	if err := h.store.Create(c.Request.Context(), scan); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		h.log.Error("create scan", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": texts.T(lang, texts.ErrStore)})
 		return
 	}
 
@@ -163,7 +173,7 @@ func (h *handler) listScans(c *gin.Context) {
 
 	scans, err := h.store.List(c.Request.Context(), targetURL, clientID(c), limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": texts.T(requestLang(c), texts.ErrStore)})
 		return
 	}
 	if scans == nil {
@@ -174,24 +184,26 @@ func (h *handler) listScans(c *gin.Context) {
 }
 
 func (h *handler) downloadPDF(c *gin.Context) {
+	lang := requestLang(c)
+
 	scan, err := h.store.Get(c.Request.Context(), c.Param("id"))
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "not_found", "detail": texts.T(lang, texts.ErrNotFound)})
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": texts.T(lang, texts.ErrStore)})
 		return
 	}
 	if !isOwner(scan, clientID(c)) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "not_found", "detail": texts.T(lang, texts.ErrNotFound)})
 		return
 	}
 
 	var buffer bytes.Buffer
 	if err := report.WritePDF(&buffer, scan); err != nil {
 		h.log.Error("pdf report failed", "id", scan.ID, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "report_error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "report_error", "detail": texts.T(lang, texts.ErrReport)})
 		return
 	}
 
@@ -200,19 +212,21 @@ func (h *handler) downloadPDF(c *gin.Context) {
 }
 
 func (h *handler) getScan(c *gin.Context) {
+	lang := requestLang(c)
+
 	scan, err := h.store.Get(c.Request.Context(), c.Param("id"))
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "not_found", "detail": texts.T(lang, texts.ErrNotFound)})
 		return
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": texts.T(lang, texts.ErrStore)})
 		return
 	}
 
 	if !isOwner(scan, clientID(c)) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not_found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "not_found", "detail": texts.T(lang, texts.ErrNotFound)})
 		return
 	}
 
@@ -234,30 +248,32 @@ func (h *handler) runScan(initial store.Scan) {
 		return
 	}
 
+	lang := texts.Parse(scan.Lang)
+
 	if h.crawler == nil {
-		h.fail(ctx, scan, "но не настроен")
+		h.fail(ctx, scan, texts.T(lang, texts.ScanNoCrawler))
 		return
 	}
 
 	pages, err := h.crawler.Crawl(ctx, scan.URL, scan.Depth)
 	if err != nil {
 		h.log.Error("crawl failed", "url", scan.URL, "error", err)
-		h.fail(ctx, scan, "краулер завершился ошибкой")
+		h.fail(ctx, scan, texts.T(lang, texts.ScanCrawlFailed))
 		return
 	}
 
 	if len(pages) == 0 {
-		h.fail(ctx, scan, "не удалось обойти ни одной страницы: сайт недоступен, закрыт robots.txt или отдаёт контент только через JavaScript")
+		h.fail(ctx, scan, texts.T(lang, texts.ScanNoPages))
 		return
 	}
 
 	scan.Pages = len(pages)
 
-	altChecker := checks.AltChecker{}
-	linkChecker := checks.LinkChecker{}
-	pageChecker := checks.PageChecker{}
-	formChecker := checks.FormChecker{}
-	tableChecker := checks.TableChecker{}
+	altChecker := checks.AltChecker{Lang: lang}
+	linkChecker := checks.LinkChecker{Lang: lang}
+	pageChecker := checks.PageChecker{Lang: lang}
+	formChecker := checks.FormChecker{Lang: lang}
+	tableChecker := checks.TableChecker{Lang: lang}
 
 	checkFindings := make([]checks.Finding, 0)
 	links := make([]crawler.Link, 0)
@@ -271,14 +287,14 @@ func (h *handler) runScan(initial store.Scan) {
 		links = append(links, page.PDFs...)
 	}
 
-	checkFindings = append(checkFindings, h.checkPDFs(ctx, pages)...)
+	checkFindings = append(checkFindings, h.checkPDFs(ctx, pages, lang)...)
 
 	if h.aiClient != nil {
-		checkFindings = append(checkFindings, h.checkImages(ctx, pages)...)
-		h.runAILinkChecks(ctx, pages, &checkFindings)
+		checkFindings = append(checkFindings, h.checkImages(ctx, pages, lang)...)
+		h.runAILinkChecks(ctx, pages, &checkFindings, lang)
 	}
 
-	brokenLinks, checkedLinks, unverifiedLinks := checks.BrokenLinks(ctx, h.httpClient, links, 50)
+	brokenLinks, checkedLinks, unverifiedLinks := checks.BrokenLinks(ctx, h.httpClient, links, 50, lang)
 	checkFindings = append(checkFindings, brokenLinks...)
 
 	critical, warning, ok := checks.Stats(checkFindings)
@@ -315,7 +331,7 @@ const (
 	maxPDFSize     = 20 << 20
 )
 
-func (h *handler) checkPDFs(ctx context.Context, pages []crawler.Page) []checks.Finding {
+func (h *handler) checkPDFs(ctx context.Context, pages []crawler.Page, lang texts.Lang) []checks.Finding {
 	if h.pdfAnalyzer == nil {
 		return nil
 	}
@@ -332,14 +348,14 @@ func (h *handler) checkPDFs(ctx context.Context, pages []crawler.Page) []checks.
 				continue
 			}
 			seen[link.Href] = struct{}{}
-			findings = append(findings, h.checkPDF(ctx, link)...)
+			findings = append(findings, h.checkPDF(ctx, link, lang)...)
 		}
 	}
 
 	return findings
 }
 
-func (h *handler) checkPDF(ctx context.Context, link crawler.Link) []checks.Finding {
+func (h *handler) checkPDF(ctx context.Context, link crawler.Link, lang texts.Lang) []checks.Finding {
 	requestCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -382,9 +398,9 @@ func (h *handler) checkPDF(ctx context.Context, link crawler.Link) []checks.Find
 		findings = append(findings, checks.Finding{
 			Code:           "PDF_NO_TEXT",
 			Severity:       "critical",
-			Title:          "PDF без текстового слоя",
+			Title:          texts.T(lang, texts.PDFNoTextTitle),
 			Element:        element,
-			Recommendation: "Опубликуйте PDF с текстовым слоем или HTML-версию: сканы без текста плохо читаются скринридером.",
+			Recommendation: texts.T(lang, texts.PDFNoTextRec),
 			WCAG:           "1.3.1",
 		})
 	}
@@ -393,27 +409,27 @@ func (h *handler) checkPDF(ctx context.Context, link crawler.Link) []checks.Find
 		findings = append(findings, checks.Finding{
 			Code:           "PDF_NOT_TAGGED",
 			Severity:       "warning",
-			Title:          "PDF без тегов структуры",
+			Title:          texts.T(lang, texts.PDFNotTaggedTitle),
 			Element:        element,
-			Recommendation: "Пересохраните PDF с включённой разметкой структуры (Tagged PDF), чтобы скринридер понимал порядок чтения.",
+			Recommendation: texts.T(lang, texts.PDFNotTaggedRec),
 			WCAG:           "1.3.1",
 		})
 	} else if result.AltTexts == 0 {
 		findings = append(findings, checks.Finding{
 			Code:           "PDF_ALT_MISSING",
 			Severity:       "warning",
-			Title:          "В PDF не найден /Alt",
+			Title:          texts.T(lang, texts.PDFAltMissingTitle),
 			Element:        element,
-			Recommendation: "Добавьте /Alt к смысловым изображениям и схемам в PDF.",
+			Recommendation: texts.T(lang, texts.PDFAltMissingRec),
 			WCAG:           "1.1.1",
 		})
 	} else {
 		findings = append(findings, checks.Finding{
 			Code:           "PDF_ALT_OK",
 			Severity:       "ok",
-			Title:          "В PDF есть теги и /Alt",
+			Title:          texts.T(lang, texts.PDFAltOKTitle),
 			Element:        element,
-			Recommendation: "Ничего не нужно: структура и альтернативный текст на месте.",
+			Recommendation: texts.T(lang, texts.PDFAltOKRec),
 			WCAG:           "1.1.1",
 		})
 	}
@@ -422,9 +438,9 @@ func (h *handler) checkPDF(ctx context.Context, link crawler.Link) []checks.Find
 		findings = append(findings, checks.Finding{
 			Code:           "PDF_TITLE_MISSING",
 			Severity:       "warning",
-			Title:          "PDF без заголовка",
+			Title:          texts.T(lang, texts.PDFTitleMissingTitle),
 			Element:        element,
-			Recommendation: "Заполните Title в свойствах документа: он показывается во вкладке и в списке файлов.",
+			Recommendation: texts.T(lang, texts.PDFTitleMissingRec),
 			WCAG:           "2.4.2",
 		})
 	}
@@ -433,9 +449,9 @@ func (h *handler) checkPDF(ctx context.Context, link crawler.Link) []checks.Find
 		findings = append(findings, checks.Finding{
 			Code:           "PDF_LANG_MISSING",
 			Severity:       "warning",
-			Title:          "PDF без языка документа",
+			Title:          texts.T(lang, texts.PDFLangMissingTitle),
 			Element:        element,
-			Recommendation: "Укажите язык документа в свойствах PDF, чтобы скринридер выбрал правильное произношение.",
+			Recommendation: texts.T(lang, texts.PDFLangMissingRec),
 			WCAG:           "3.1.1",
 		})
 	}
@@ -448,7 +464,7 @@ const (
 	maxImageSize     = 5 << 20
 )
 
-func (h *handler) checkImages(ctx context.Context, pages []crawler.Page) []checks.Finding {
+func (h *handler) checkImages(ctx context.Context, pages []crawler.Page, lang texts.Lang) []checks.Finding {
 	if h.aiClient == nil || !h.aiVision {
 		return nil
 	}
@@ -475,14 +491,14 @@ func (h *handler) checkImages(ctx context.Context, pages []crawler.Page) []check
 			}
 			seen[src] = struct{}{}
 
-			findings = append(findings, h.checkImage(ctx, page.URL, image)...)
+			findings = append(findings, h.checkImage(ctx, page.URL, image, lang)...)
 		}
 	}
 
 	return findings
 }
 
-func (h *handler) checkImage(ctx context.Context, pageURL string, image crawler.Image) []checks.Finding {
+func (h *handler) checkImage(ctx context.Context, pageURL string, image crawler.Image, lang texts.Lang) []checks.Finding {
 	requestCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
@@ -518,6 +534,7 @@ func (h *handler) checkImage(ctx context.Context, pageURL string, image crawler.
 		MimeType: contentType,
 		Alt:      image.Alt,
 		Context:  pageURL,
+		Language: string(lang),
 	})
 	if err != nil {
 		h.log.Warn("ai image check failed", "src", image.Src, "error", err)
@@ -528,24 +545,24 @@ func (h *handler) checkImage(ctx context.Context, pageURL string, image crawler.
 
 	switch strings.ToLower(strings.TrimSpace(result.Verdict)) {
 	case "mismatch":
-		recommendation := "Модель считает, что alt не соответствует изображению."
+		recommendation := texts.T(lang, texts.AIMismatchRec)
 		if strings.TrimSpace(result.Reason) != "" {
 			recommendation += " " + strings.TrimSpace(result.Reason)
 		}
 		if strings.TrimSpace(result.SuggestedAlt) != "" {
-			recommendation += fmt.Sprintf(" Предлагаемый alt: «%s».", strings.TrimSpace(result.SuggestedAlt))
+			recommendation += texts.Tf(lang, texts.AISuggestedAlt, strings.TrimSpace(result.SuggestedAlt))
 		}
 
 		return []checks.Finding{{
 			Code:           "IMG_ALT_AI_MISMATCH",
 			Severity:       "critical",
-			Title:          "alt не соответствует изображению",
+			Title:          texts.T(lang, texts.AIMismatchTitle),
 			Element:        element,
 			Recommendation: recommendation,
 			WCAG:           "1.1.1",
 		}}
 	case "match":
-		recommendation := "Модель подтвердила, что alt соответствует изображению."
+		recommendation := texts.T(lang, texts.AIMatchRec)
 		if strings.TrimSpace(result.Reason) != "" {
 			recommendation += " " + strings.TrimSpace(result.Reason)
 		}
@@ -553,7 +570,7 @@ func (h *handler) checkImage(ctx context.Context, pageURL string, image crawler.
 		return []checks.Finding{{
 			Code:           "IMG_ALT_AI_OK",
 			Severity:       "ok",
-			Title:          "alt соответствует изображению",
+			Title:          texts.T(lang, texts.AIMatchTitle),
 			Element:        element,
 			Recommendation: recommendation,
 			WCAG:           "1.1.1",
@@ -563,7 +580,7 @@ func (h *handler) checkImage(ctx context.Context, pageURL string, image crawler.
 	}
 }
 
-func (h *handler) runAILinkChecks(ctx context.Context, pages []crawler.Page, findings *[]checks.Finding) {
+func (h *handler) runAILinkChecks(ctx context.Context, pages []crawler.Page, findings *[]checks.Finding, lang texts.Lang) {
 	const budget = 8
 	seen := make(map[string]struct{})
 	left := budget
@@ -586,7 +603,7 @@ func (h *handler) runAILinkChecks(ctx context.Context, pages []crawler.Page, fin
 			seen[link.Href] = struct{}{}
 			left--
 
-			res, err := h.aiClient.CheckLink(ctx, ai.LinkRequest{Text: link.Text, URL: link.Href})
+			res, err := h.aiClient.CheckLink(ctx, ai.LinkRequest{Text: link.Text, URL: link.Href, Language: string(lang)})
 			if err != nil {
 				h.log.Warn("ai link check failed", "href", link.Href, "error", err)
 				continue
@@ -598,9 +615,9 @@ func (h *handler) runAILinkChecks(ctx context.Context, pages []crawler.Page, fin
 			*findings = append(*findings, checks.Finding{
 				Code:           "LINK_TEXT_MISMATCH",
 				Severity:       "warning",
-				Title:          "Текст ссылки не соответствует цели",
+				Title:          texts.T(lang, texts.AILinkTitle),
 				Element:        fmt.Sprintf(`<a href="%s">%s</a>`, link.Href, link.Text),
-				Recommendation: fmt.Sprintf("Предлагаемый текст: «%s».", res.SuggestedText),
+				Recommendation: texts.Tf(lang, texts.AILinkRec, res.SuggestedText),
 				WCAG:           "2.4.4",
 			})
 		}

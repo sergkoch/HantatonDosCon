@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/texts"
 )
 
 const linkCheckUserAgent = "Mozilla/5.0 (compatible; AccessibleContentBot/0.1; +https://github.com/sergkoch/HantatonDosCon)"
@@ -37,10 +38,12 @@ func IsGenericLinkText(text string) bool {
 	return ok
 }
 
-// LinkChecker проверяет текст ссылок (T13).
-type LinkChecker struct{}
+// LinkChecker проверяет текст ссылок (T13). Lang задаёт язык находок.
+type LinkChecker struct {
+	Lang texts.Lang
+}
 
-func (LinkChecker) Check(page crawler.Page) []Finding {
+func (l LinkChecker) Check(page crawler.Page) []Finding {
 	findings := make([]Finding, 0)
 
 	links := make([]crawler.Link, 0, len(page.Links)+len(page.PDFs))
@@ -58,9 +61,9 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 			findings = append(findings, Finding{
 				Code:           "LINK_TEXT_EMPTY",
 				Severity:       "warning",
-				Title:          "Ссылка без текста",
+				Title:          texts.T(l.Lang, texts.LinkEmptyTitle),
 				Element:        fmt.Sprintf(`<a href="%s"></a>`, link.Href),
-				Recommendation: "Добавьте текст, который объясняет, куда ведёт ссылка.",
+				Recommendation: texts.T(l.Lang, texts.LinkEmptyRec),
 				WCAG:           "2.4.4",
 			})
 			continue
@@ -74,9 +77,9 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 			findings = append(findings, Finding{
 				Code:           "LINK_TEXT_GENERIC",
 				Severity:       "warning",
-				Title:          "Непонятный текст ссылки",
+				Title:          texts.T(l.Lang, texts.LinkGenericTitle),
 				Element:        linkElement(link),
-				Recommendation: fmt.Sprintf("Напишите, что откроется: например «Положение о конкурсе» вместо «%s».", text),
+				Recommendation: texts.Tf(l.Lang, texts.LinkGenericRec, text),
 				WCAG:           "2.4.4",
 			})
 		}
@@ -89,7 +92,7 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 // Битыми считаются только 404/410. Ответы 401/403/429/5xx и сетевые ошибки
 // означают «не удалось проверить»: это часто защита от ботов, а не мёртвая ссылка.
 // Возвращает находки, количество проверенных и количество непроверенных ссылок.
-func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link, max int) ([]Finding, int, int) {
+func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link, max int, lang texts.Lang) ([]Finding, int, int) {
 	if max <= 0 {
 		max = 50
 	}
@@ -158,9 +161,9 @@ func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link,
 			findings = append(findings, Finding{
 				Code:           "LINK_BROKEN",
 				Severity:       "critical",
-				Title:          "Битая ссылка",
+				Title:          texts.T(lang, texts.LinkBrokenTitle),
 				Element:        linkElement(result.link),
-				Recommendation: "Исправьте адрес ссылки или удалите её — сейчас она ведёт в никуда.",
+				Recommendation: texts.T(lang, texts.LinkBrokenRec),
 				WCAG:           "2.4.4",
 			})
 		case result.status >= http.StatusBadRequest:

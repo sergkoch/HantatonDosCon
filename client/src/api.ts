@@ -1,8 +1,9 @@
 import { clientID } from "./lib/clientId";
+import { getLocale } from "./lib/i18n.svelte";
 import type { Scan } from "./types";
 
 function requestHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  return { ...extra, "X-Client-ID": clientID() };
+  return { ...extra, "X-Client-ID": clientID(), "X-Lang": getLocale() };
 }
 
 async function readError(response: Response): Promise<string> {

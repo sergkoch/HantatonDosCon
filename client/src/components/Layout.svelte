@@ -2,10 +2,20 @@
   import type { Snippet } from "svelte";
   import { navigate } from "../lib/router.svelte";
   import { getTheme, toggleTheme } from "../lib/theme.svelte";
+  import { getLocale, t, toggleLocale } from "../lib/i18n.svelte";
 
   let { children }: { children: Snippet } = $props();
 
   const theme = $derived(getTheme());
+  const locale = $derived(getLocale());
+
+  $effect(() => {
+    document.title = t("site.title");
+    const description = document.querySelector('meta[name="description"]');
+    if (description) {
+      description.setAttribute("content", t("site.description"));
+    }
+  });
 
   const tactilePaths = [
     "0,12 9,12 9,26 3,26 3,34 0,34",
@@ -16,7 +26,7 @@
 </script>
 
 <div class="site">
-  <a class="skip-link" href="#main">К содержимому</a>
+  <a class="skip-link" href="#main">{t("layout.skip")}</a>
 
   <header class="site-header">
     <div class="container site-header__inner">
@@ -31,11 +41,11 @@
         <span class="brand__mark" aria-hidden="true">
           <img src="/logo.png" alt="" />
         </span>
-        Доступный контент
+        {t("site.title")}
       </a>
 
       <div class="site-header__nav">
-        <nav class="site-nav" aria-label="Основная навигация">
+        <nav class="site-nav" aria-label={t("layout.navLabel")}>
           <a
             href="/"
             onclick={(event) => {
@@ -43,7 +53,7 @@
               navigate("/");
             }}
           >
-            Проверить
+            {t("layout.navCheck")}
           </a>
           <a
             href="/history"
@@ -52,19 +62,33 @@
               navigate("/history");
             }}
           >
-            История
+            {t("layout.navHistory")}
           </a>
-          <a href="#how">Как это работает</a>
+          <a href="#how">{t("layout.navHow")}</a>
         </nav>
+
+        <button
+          class="theme-toggle lang-toggle"
+          type="button"
+          onclick={toggleLocale}
+          aria-label={t("layout.langSwitch")}
+          title={t("layout.langSwitch")}
+        >
+          <span lang={locale === "ru" ? "en" : "ru"}>
+            {locale === "ru" ? "EN" : "RU"}
+          </span>
+        </button>
 
         <button
           class="theme-toggle"
           type="button"
           onclick={(event) => toggleTheme(event)}
           aria-label={theme === "dark"
-            ? "Включить светлую тему"
-            : "Включить тёмную тему"}
-          title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+            ? t("layout.themeToLight")
+            : t("layout.themeToDark")}
+          title={theme === "dark"
+            ? t("layout.themeLightTitle")
+            : t("layout.themeDarkTitle")}
         >
           {#if theme === "dark"}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -103,7 +127,7 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>Учебный проект команды. Проверка доступности контента.</p>
+      <p>{t("layout.footer")}</p>
     </div>
   </footer>
 

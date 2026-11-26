@@ -54,11 +54,11 @@ func (p *Postgres) Create(ctx context.Context, scan Scan) error {
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO scans (
-			id, owner_id, url, depth, status, version, previous_id, score,
+			id, owner_id, url, depth, status, lang, version, previous_id, score,
 			pages_count, checked_links, unverified_links, error,
 			stats, changes, created_at, finished_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
-		scan.ID, scan.Owner, scan.URL, scan.Depth, string(scan.Status), scan.Version,
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+		scan.ID, scan.Owner, scan.URL, scan.Depth, string(scan.Status), scan.Lang, scan.Version,
 		nullableUUID(scan.PreviousID), scan.Score, scan.Pages,
 		scan.CheckedLinks, scan.UnverifiedLinks, scan.Error,
 		statsJSON, changesJSON, scan.CreatedAt, finishedAt(scan),
@@ -142,7 +142,7 @@ func (p *Postgres) List(ctx context.Context, targetURL, owner string, limit int)
 	}
 
 	rows, err := p.pool.Query(ctx, `
-		SELECT id::text, owner_id, url, depth, status, version, COALESCE(previous_id::text, ''),
+		SELECT id::text, owner_id, url, depth, status, lang, version, COALESCE(previous_id::text, ''),
 		       score, pages_count, checked_links, unverified_links, error,
 		       stats, changes, created_at
 		FROM scans
@@ -188,7 +188,7 @@ type rowScanner interface {
 
 func (p *Postgres) scanBy(ctx context.Context, where string, args ...any) (Scan, error) {
 	row := p.pool.QueryRow(ctx, `
-		SELECT id::text, owner_id, url, depth, status, version, COALESCE(previous_id::text, ''),
+		SELECT id::text, owner_id, url, depth, status, lang, version, COALESCE(previous_id::text, ''),
 		       score, pages_count, checked_links, unverified_links, error,
 		       stats, changes, created_at
 		FROM scans `+where, args...)
@@ -210,7 +210,7 @@ func scanRow(row rowScanner) (Scan, error) {
 	)
 
 	err := row.Scan(
-		&scan.ID, &scan.Owner, &scan.URL, &scan.Depth, &status, &scan.Version, &previousID,
+		&scan.ID, &scan.Owner, &scan.URL, &scan.Depth, &status, &scan.Lang, &scan.Version, &previousID,
 		&scan.Score, &scan.Pages, &scan.CheckedLinks, &scan.UnverifiedLinks,
 		&scan.Error, &statsJSON, &changesJSON, &scan.CreatedAt,
 	)

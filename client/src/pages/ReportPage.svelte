@@ -3,6 +3,7 @@
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
   import { navigate } from "../lib/router.svelte";
+  import { getLocale, t } from "../lib/i18n.svelte";
   import { kindLabel, scoreLabel } from "../lib/score";
   import type { Scan, Severity } from "../types";
 
@@ -37,7 +38,7 @@
       } catch (cause) {
         if (!active) return;
         error =
-          cause instanceof Error ? cause.message : "Не удалось получить отчёт";
+          cause instanceof Error ? cause.message : t("report.error");
       }
     }
 
@@ -89,11 +90,11 @@
     };
   });
 
-  const filters: Array<{ value: "all" | Severity; label: string }> = [
-    { value: "all", label: "Все" },
-    { value: "critical", label: "Критично" },
-    { value: "warning", label: "Предупреждения" },
-  ];
+  const filters = $derived<Array<{ value: "all" | Severity; label: string }>>([
+    { value: "all", label: t("report.filterAll") },
+    { value: "critical", label: t("report.filterCritical") },
+    { value: "warning", label: t("report.filterWarning") },
+  ]);
 
   // В списке — только проблемы (без «в порядке»).
   const problems = $derived(
@@ -143,10 +144,10 @@
 {:else if scan && scan.status === "failed"}
   <div class="container">
     <section class="section" aria-labelledby="failed-title">
-      <p class="hero__eyebrow">Проверка</p>
+      <p class="hero__eyebrow">{t("report.scanEyebrow")}</p>
       <h1 class="section__title" id="failed-title">{scan.url}</h1>
       <p class="field__error" role="alert">
-        {scan.error ?? "Проверка не удалась"}
+        {scan.error ?? t("report.failedFallback")}
       </p>
       <div class="actions">
         <a
@@ -157,7 +158,7 @@
             navigate("/");
           }}
         >
-          Попробовать снова
+          {t("report.tryAgain")}
         </a>
       </div>
     </section>
@@ -168,10 +169,15 @@
     <section class="section" aria-labelledby="report-title">
       <div class="report-head">
         <div class="report-head__main">
-          <p class="hero__eyebrow">Отчёт · проверка v{current.version}</p>
+          <p class="hero__eyebrow">
+            {t("report.eyebrow", { version: current.version })}
+          </p>
           <h1 class="report-head__title" id="report-title">{current.url}</h1>
           <p class="status">
-            Находок: {problems.length} · {scoreLabel(current.score)}
+            {t("report.findingsCount", { count: problems.length })} · {scoreLabel(
+              current.score,
+              getLocale(),
+            )}
             {#if current.previousId}
               ·
               <a
@@ -181,27 +187,32 @@
                   navigate(`/report/${current.previousId}`);
                 }}
               >
-                предыдущая проверка
+                {t("report.previous")}
               </a>
             {/if}
           </p>
           <div class="report-head__stats">
             <span class="badge badge--critical">
-              {current.stats.critical} критично
+              {t("report.critical", { count: current.stats.critical })}
             </span>
             <span class="badge badge--warning">
-              {current.stats.warning} предупр.
+              {t(
+                current.stats.warning === 1
+                  ? "report.warningOne"
+                  : "report.warning",
+                { count: current.stats.warning },
+              )}
             </span>
           </div>
           <p class="report-coverage">
-            Проверено страниц: {current.pages ?? 0}.
+            {t("report.coveragePages", { count: current.pages ?? 0 })}
             {#if current.checkedLinks}
-              Ссылок проверено: {current.checkedLinks}, не удалось проверить:
-              {current.unverifiedLinks ?? 0}.
+              {t("report.coverageLinks", {
+                checked: current.checkedLinks,
+                unverified: current.unverifiedLinks ?? 0,
+              })}
             {/if}
-            Оценка учитывает alt, текст и доступность ссылок, подписи полей,
-            заголовки, таблицы и PDF (текст, теги, /Alt, Title, Lang).
-            Контраст, клавиатура и ARIA не проверяются.
+            {t("report.coverageNote")}
           </p>
         </div>
 
@@ -209,7 +220,7 @@
           <div
             class="score-ring"
             role="img"
-            aria-label={`Оценка ${current.score} из 100`}
+            aria-label={t("report.scoreAria", { score: current.score })}
           >
             <svg viewBox="0 0 160 160" width="160" height="160" aria-hidden="true">
               <circle
@@ -240,7 +251,7 @@
             </svg>
             <div class="score-ring__center">
               <span class="score-ring__num">{displayScore}</span>
-              <span class="score-ring__label">из 100</span>
+              <span class="score-ring__label">{t("report.scoreOf")}</span>
             </div>
           </div>
         {/if}
@@ -249,31 +260,32 @@
       {#if current.changes}
         <section class="section" aria-labelledby="changes-title">
           <h2 class="section__title" id="changes-title">
-            Что изменилось с прошлой проверки
+            {t("report.changesTitle")}
           </h2>
 
           <div class="report-head__stats">
             <span
               class={`badge ${current.changes.added.length > 0 ? "badge--critical" : ""}`.trim()}
             >
-              {current.changes.added.length} новых
+              {t("report.added", { count: current.changes.added.length })}
             </span>
             <span class="badge">
-              {current.changes.fixed.length} исправлено
+              {t("report.fixed", { count: current.changes.fixed.length })}
             </span>
             <span class="badge">
-              {current.changes.remaining} осталось
+              {t("report.remaining", { count: current.changes.remaining })}
             </span>
             {#if current.changes.scoreDelta !== undefined}
               <span class="badge">
-                {current.changes.scoreDelta >= 0 ? "+" : ""}{current.changes.scoreDelta}
-                к оценке
+                {t("report.delta", {
+                  delta: `${current.changes.scoreDelta >= 0 ? "+" : ""}${current.changes.scoreDelta}`,
+                })}
               </span>
             {/if}
           </div>
 
           {#if current.changes.added.length > 0}
-            <h3>Новые проблемы</h3>
+            <h3>{t("report.newProblems")}</h3>
             <ul class="links">
               {#each current.changes.added as finding (finding.id)}
                 <li>
@@ -285,7 +297,7 @@
           {/if}
 
           {#if current.changes.fixed.length > 0}
-            <h3>Исправлено</h3>
+            <h3>{t("report.fixedHeading")}</h3>
             <ul class="links">
               {#each current.changes.fixed as finding (finding.id)}
                 <li>
@@ -298,14 +310,14 @@
 
           {#if current.changes.added.length === 0 && current.changes.fixed.length === 0}
             <p class="status">
-              Новых проблем нет, исправлений тоже нет — состав находок не изменился.
+              {t("report.noChanges")}
             </p>
           {/if}
         </section>
       {/if}
 
       <fieldset class="filters">
-        <legend class="visually-hidden">Фильтр по критичности</legend>
+        <legend class="visually-hidden">{t("report.filterLegend")}</legend>
         {#each filters as item (item.value)}
           <button
             type="button"
@@ -320,13 +332,13 @@
 
       <div class="table-wrap">
         <table class="table">
-          <caption class="visually-hidden">Находки проверки</caption>
+          <caption class="visually-hidden">{t("report.tableCaption")}</caption>
           <thead>
             <tr>
-              <th scope="col">Критичность</th>
-              <th scope="col">Тип</th>
-              <th scope="col">Что не так</th>
-              <th scope="col">Рекомендация</th>
+              <th scope="col">{t("report.thSeverity")}</th>
+              <th scope="col">{t("report.thKind")}</th>
+              <th scope="col">{t("report.thProblem")}</th>
+              <th scope="col">{t("report.thRecommendation")}</th>
             </tr>
           </thead>
           <tbody>
@@ -338,7 +350,7 @@
                 <td>
                   <Badge severity={finding.severity} />
                 </td>
-                <td>{kindLabel(finding.kind)}</td>
+                <td>{kindLabel(finding.kind, getLocale())}</td>
                 <td>
                   <strong>{finding.title}</strong>
                   <code class="code code--block">{finding.element}</code>
@@ -352,19 +364,19 @@
       </div>
 
       {#if findings.length === 0}
-        <p class="empty">По этому фильтру находок нет.</p>
+        <p class="empty">{t("report.emptyFilter")}</p>
       {/if}
 
       <div class="actions">
         <Button type="button" onclick={() => downloadCsv(current)}>
-          Скачать CSV
+          {t("report.downloadCsv")}
         </Button>
         <a
           class="button button--primary"
           href={`/api/scans/${current.id}/pdf`}
           download
         >
-          Скачать PDF
+          {t("report.downloadPdf")}
         </a>
       </div>
     </section>
@@ -372,8 +384,10 @@
 {:else}
   <div class="container">
     <section class="section" aria-labelledby="scanning-title">
-      <p class="hero__eyebrow">Проверка</p>
-      <h1 class="section__title" id="scanning-title">Проверяем сайт…</h1>
+      <p class="hero__eyebrow">{t("report.scanEyebrow")}</p>
+      <h1 class="section__title" id="scanning-title">
+        {t("report.scanningTitle")}
+      </h1>
       <div class="scan-visual" aria-hidden="true">
         <span class="scan-visual__pulse"></span>
         <span class="scan-visual__pulse"></span>
@@ -399,7 +413,7 @@
       <div class="progress" aria-hidden="true">
         <div class="progress__bar"></div>
       </div>
-      <p class="status" aria-live="polite">Собираем страницы, ссылки и медиа…</p>
+      <p class="status" aria-live="polite">{t("report.scanningStatus")}</p>
     </section>
   </div>
 {/if}
