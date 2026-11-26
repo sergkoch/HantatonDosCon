@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { t } from "../lib/i18n.svelte";
 
   const KEY = "cookie-consent";
   let visible = $state(false);
@@ -26,15 +27,13 @@
   <div
     class="cookie-consent"
     role="region"
-    aria-label="Использование файлов cookie"
+    aria-label={t("cookie.label")}
   >
     <p class="cookie-consent__text">
-      Мы используем файлы cookie, чтобы сайт работал корректно и запоминал ваши
-      настройки (например, выбранную тему). Продолжая работу, вы соглашаетесь с
-      этим.
+      {t("cookie.text")}
     </p>
     <button class="button button--primary" type="button" onclick={accept}>
-      Принять
+      {t("cookie.accept")}
     </button>
   </div>
 {/if}
