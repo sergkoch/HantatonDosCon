@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"accessible-content/server/internal/crawler"
+	"accessible-content/server/internal/texts"
 )
 
 const linkCheckUserAgent = "Mozilla/5.0 (compatible; AccessibleContentBot/0.1; +https://github.com/sergkoch/HantatonDosCon)"
@@ -37,10 +38,12 @@ func IsGenericLinkText(text string) bool {
 	return ok
 }
 
-// LinkChecker проверяет текст ссылок (T13).
-type LinkChecker struct{}
+// LinkChecker проверяет текст ссылок (T13). Lang задаёт язык находок.
+type LinkChecker struct {
+	Lang texts.Lang
+}
 
-func (LinkChecker) Check(page crawler.Page) []Finding {
+func (l LinkChecker) Check(page crawler.Page) []Finding {
 	findings := make([]Finding, 0)
 
 	links := make([]crawler.Link, 0, len(page.Links)+len(page.PDFs))
@@ -58,9 +61,9 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 			findings = append(findings, Finding{
 				Code:           "LINK_TEXT_EMPTY",
 				Severity:       "warning",
-				Title:          "Ссылка без текста",
+				Title:          texts.T(l.Lang, texts.LinkEmptyTitle),
 				Element:        fmt.Sprintf(`<a href="%s"></a>`, link.Href),
-				Recommendation: "Добавьте текст, который объясняет, куда ведёт ссылка.",
+				Recommendation: texts.T(l.Lang, texts.LinkEmptyRec),
 				WCAG:           "2.4.4",
 			})
 			continue
@@ -74,9 +77,9 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 			findings = append(findings, Finding{
 				Code:           "LINK_TEXT_GENERIC",
 				Severity:       "warning",
-				Title:          "Непонятный текст ссылки",
+				Title:          texts.T(l.Lang, texts.LinkGenericTitle),
 				Element:        linkElement(link),
-				Recommendation: fmt.Sprintf("Напишите, что откроется: например «Положение о конкурсе» вместо «%s».", text),
+				Recommendation: texts.Tf(l.Lang, texts.LinkGenericRec, text),
 				WCAG:           "2.4.4",
 			})
 		}
@@ -85,11 +88,17 @@ func (LinkChecker) Check(page crawler.Page) []Finding {
 	return findings
 }
 
-// BrokenLinks проверяет доступность ссылок по HTTP (T13).
+// LinkResult — результат HTTP-проверки одной ссылки.
+type LinkResult struct {
+	Link   crawler.Link
+	Status int
+	Err    error
+}
+
+// CheckLinks проверяет доступность ссылок по HTTP (T13).
 // Битыми считаются только 404/410. Ответы 401/403/429/5xx и сетевые ошибки
 // означают «не удалось проверить»: это часто защита от ботов, а не мёртвая ссылка.
-// Возвращает находки, количество проверенных и количество непроверенных ссылок.
-func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link, max int) ([]Finding, int, int) {
+func CheckLinks(ctx context.Context, client *http.Client, links []crawler.Link, max int) []LinkResult {
 	if max <= 0 {
 		max = 50
 	}
@@ -124,13 +133,7 @@ func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link,
 		candidates = append(candidates, crawler.Link{Href: href, Text: strings.TrimSpace(link.Text), Label: strings.TrimSpace(link.Label)})
 	}
 
-	type checkResult struct {
-		link   crawler.Link
-		status int
-		err    error
-	}
-
-	results := make([]checkResult, len(candidates))
+	results := make([]LinkResult, len(candidates))
 	sem := make(chan struct{}, 10)
 	var wg sync.WaitGroup
 
@@ -142,33 +145,39 @@ func BrokenLinks(ctx context.Context, client *http.Client, links []crawler.Link,
 			defer func() { <-sem }()
 
 			status, err := statusOf(ctx, client, link.Href)
-			results[i] = checkResult{link: link, status: status, err: err}
+			results[i] = LinkResult{Link: link, Status: status, Err: err}
 		}(i, link)
 	}
 	wg.Wait()
 
+	return results
+}
+
+// BrokenLinkFindings собирает находки по битым ссылкам на нужном языке.
+// Возвращает находки и количество ссылок, которые не удалось проверить.
+func BrokenLinkFindings(results []LinkResult, lang texts.Lang) ([]Finding, int) {
 	findings := make([]Finding, 0)
 	unverified := 0
 
 	for _, result := range results {
 		switch {
-		case result.err != nil:
+		case result.Err != nil:
 			unverified++
-		case result.status == http.StatusNotFound || result.status == http.StatusGone:
+		case result.Status == http.StatusNotFound || result.Status == http.StatusGone:
 			findings = append(findings, Finding{
 				Code:           "LINK_BROKEN",
 				Severity:       "critical",
-				Title:          "Битая ссылка",
-				Element:        linkElement(result.link),
-				Recommendation: "Исправьте адрес ссылки или удалите её — сейчас она ведёт в никуда.",
+				Title:          texts.T(lang, texts.LinkBrokenTitle),
+				Element:        linkElement(result.Link),
+				Recommendation: texts.T(lang, texts.LinkBrokenRec),
 				WCAG:           "2.4.4",
 			})
-		case result.status >= http.StatusBadRequest:
+		case result.Status >= http.StatusBadRequest:
 			unverified++
 		}
 	}
 
-	return findings, len(candidates), unverified
+	return findings, unverified
 }
 
 func linkElement(link crawler.Link) string {

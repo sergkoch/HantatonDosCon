@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createScan } from "../api";
   import { navigate } from "../lib/router.svelte";
+  import { t } from "../lib/i18n.svelte";
   import Button from "../components/Button.svelte";
   import Card from "../components/Card.svelte";
 
@@ -19,7 +20,7 @@
       navigate(`/report/${scan.id}`);
     } catch (cause) {
       error =
-        cause instanceof Error ? cause.message : "Не удалось запустить проверку";
+        cause instanceof Error ? cause.message : t("home.error");
     } finally {
       busy = false;
     }
@@ -30,15 +31,16 @@
   <section class="hero">
     <div class="hero__badge">
       <span class="hero__badge-dot" aria-hidden="true"></span>
-      Проверка доступности · WCAG
+      {t("home.badge")}
     </div>
 
     <h1 class="hero__title">
-      Сайт, который <span class="hero__title-accent">понимают</span> все
+      {t("home.titleBefore")}<span class="hero__title-accent"
+        >{t("home.titleAccent")}</span
+      >{t("home.titleAfter")}
     </h1>
     <p class="hero__lead">
-      Проверьте изображения, PDF и ссылки. Найдите не только формальные ошибки, но
-      и смысловые: описание не совпадает с картинкой, ссылка ведёт не туда.
+      {t("home.lead")}
     </p>
 
     <form
@@ -52,7 +54,7 @@
       }}
     >
       <div class="field">
-        <label class="field__label" for="url">Адрес сайта</label>
+        <label class="field__label" for="url">{t("home.urlLabel")}</label>
         <input
           class="input"
           id="url"
@@ -70,7 +72,7 @@
       </div>
 
       <div class="field field--small">
-        <label class="field__label" for="depth">Глубина</label>
+        <label class="field__label" for="depth">{t("home.depthLabel")}</label>
         <select
           class="select"
           id="depth"
@@ -81,18 +83,18 @@
               "Глубина обхода: 1 — одна страница, 2 — ссылки, 3 — глубже",
           }}
         >
-          <option value={1}>1 — страница</option>
-          <option value={2}>2 — ссылки</option>
-          <option value={3}>3 — глубже</option>
+          <option value={1}>{t("home.depth1")}</option>
+          <option value={2}>{t("home.depth2")}</option>
+          <option value={3}>{t("home.depth3")}</option>
         </select>
       </div>
 
       <Button type="submit" disabled={busy}>
-        {busy ? "Запускаем…" : "Проверить"}
+        {busy ? t("home.busy") : t("home.submit")}
       </Button>
 
       <p class="field__hint form__hint" id="scan-hint">
-        Только http или https. Начните с главной страницы.
+        {t("home.hint")}
       </p>
     </form>
 
@@ -105,10 +107,10 @@
     <div class="how">
       <div class="how__head">
         <div>
-          <p class="how__eyebrow">Процесс</p>
-          <h2 class="section__title" id="how-title">Как это работает</h2>
+          <p class="how__eyebrow">{t("home.howEyebrow")}</p>
+          <h2 class="section__title" id="how-title">{t("home.howTitle")}</h2>
         </div>
-        <p class="how__note">3 шага · без настройки</p>
+        <p class="how__note">{t("home.howNote")}</p>
       </div>
 
       <ol class="how__steps">
@@ -116,30 +118,27 @@
           <span class="how-step__num" aria-hidden="true"
             ><span class="how-step__digit">1</span></span
           >
-          <h3 class="how-step__title">Вставьте адрес</h3>
+          <h3 class="how-step__title">{t("home.step1Title")}</h3>
           <p class="how-step__text">
-            Вставьте адрес сайта. Можно проверить одну страницу или пройти по
-            ссылкам с неё.
+            {t("home.step1Text")}
           </p>
         </li>
         <li class="how-step">
           <span class="how-step__num" aria-hidden="true"
             ><span class="how-step__digit">2</span></span
           >
-          <h3 class="how-step__title">Мы проверим сайт</h3>
+          <h3 class="how-step__title">{t("home.step2Title")}</h3>
           <p class="how-step__text">
-            Соберём страницы, картинки, PDF и ссылки. Смотрим только этот сайт,
-            чтобы не создавать ему лишнюю нагрузку.
+            {t("home.step2Text")}
           </p>
         </li>
         <li class="how-step">
           <span class="how-step__num" aria-hidden="true"
             ><span class="how-step__digit">3</span></span
           >
-          <h3 class="how-step__title">Получите отчёт</h3>
+          <h3 class="how-step__title">{t("home.step3Title")}</h3>
           <p class="how-step__text">
-            Покажем, что не так, насколько это важно и как исправить. Отчёт
-            можно скачать или оставить в нём только нужные пункты.
+            {t("home.step3Text")}
           </p>
         </li>
       </ol>
@@ -147,9 +146,9 @@
   </section>
 
   <section class="section" id="checks" aria-labelledby="checks-title">
-    <h2 class="section__title" id="checks-title">Что проверяем</h2>
+    <h2 class="section__title" id="checks-title">{t("home.checksTitle")}</h2>
     <div class="grid">
-      <Card title="Изображения">
+      <Card title={t("home.cardImages")}>
         {#snippet icon()}
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <rect
@@ -171,11 +170,12 @@
             />
           </svg>
         {/snippet}
-        Есть ли <code class="code">alt</code>, осмыслен ли он и совпадает ли с
-        картинкой.
+        {t("home.cardImagesLead")}<code class="code">alt</code>{t(
+          "home.cardImagesTail",
+        )}
       </Card>
 
-      <Card title="PDF">
+      <Card title={t("home.cardPdf")}>
         {#snippet icon()}
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path
@@ -198,10 +198,10 @@
             />
           </svg>
         {/snippet}
-        Есть ли текстовый слой, теги структуры и альтернативная версия.
+        {t("home.cardPdfText")}
       </Card>
 
-      <Card title="Ссылки">
+      <Card title={t("home.cardLinks")}>
         {#snippet icon()}
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path
@@ -220,7 +220,7 @@
             />
           </svg>
         {/snippet}
-        Работают ли они и понятно ли, куда ведут.
+        {t("home.cardLinksText")}
       </Card>
     </div>
   </section>

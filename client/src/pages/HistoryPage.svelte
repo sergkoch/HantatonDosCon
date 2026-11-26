@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { listScans } from "../api";
   import { navigate } from "../lib/router.svelte";
+  import { getLocale, t } from "../lib/i18n.svelte";
   import type { Scan } from "../types";
 
   let scans = $state<Scan[]>([]);
@@ -16,8 +17,7 @@
     try {
       scans = await listScans(url, 50);
     } catch (cause) {
-      error =
-        cause instanceof Error ? cause.message : "Не удалось получить историю";
+      error = cause instanceof Error ? cause.message : t("history.error");
     } finally {
       loading = false;
     }
@@ -33,25 +33,28 @@
   }
 
   function formatDate(raw: string): string {
-    return new Date(raw).toLocaleString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return new Date(raw).toLocaleString(
+      getLocale() === "ru" ? "ru-RU" : "en-GB",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      },
+    );
   }
 
   function statusLabel(status: Scan["status"]): string {
     switch (status) {
       case "queued":
-        return "В очереди";
+        return t("history.queued");
       case "running":
-        return "Идёт проверка";
+        return t("history.running");
       case "done":
-        return "Готово";
+        return t("history.done");
       case "failed":
-        return "Ошибка";
+        return t("history.failed");
     }
   }
 
@@ -62,23 +65,25 @@
 
 <div class="container">
   <section class="section" aria-labelledby="history-title">
-    <p class="hero__eyebrow">Журнал проверок</p>
-    <h1 class="section__title" id="history-title">История проверок</h1>
+    <p class="hero__eyebrow">{t("history.eyebrow")}</p>
+    <h1 class="section__title" id="history-title">{t("history.title")}</h1>
     <p class="status">
-      Каждая повторная проверка одного адреса получает новый номер версии.
+      {t("history.note")}
     </p>
 
     <form
       class="form form--filter"
       onsubmit={submit}
-      aria-label="Фильтр истории по адресу"
+      aria-label={t("history.filterLabel")}
       {...{
         toolname: "filter_scan_history",
         tooldescription: "Фильтрует журнал проверок по точному адресу сайта",
       }}
     >
       <div class="field">
-        <label class="field__label" for="history-url">Адрес сайта</label>
+        <label class="field__label" for="history-url"
+          >{t("history.urlLabel")}</label
+        >
         <input
           class="input"
           id="history-url"
@@ -93,7 +98,9 @@
         />
       </div>
       <div class="actions">
-        <button class="button button--primary" type="submit">Показать</button>
+        <button class="button button--primary" type="submit"
+          >{t("history.show")}</button
+        >
         <button
           class="button"
           type="button"
@@ -102,7 +109,7 @@
             void load();
           }}
         >
-          Сбросить
+          {t("history.reset")}
         </button>
       </div>
     </form>
@@ -110,22 +117,22 @@
     {#if error}
       <p class="field__error" role="alert">{error}</p>
     {:else if loading}
-      <p class="status" aria-live="polite">Загружаем историю…</p>
+      <p class="status" aria-live="polite">{t("history.loading")}</p>
     {:else if scans.length === 0}
-      <p class="empty">Проверок пока нет. Запустите первую проверку на главной.</p>
+      <p class="empty">{t("history.empty")}</p>
     {:else}
       <div class="table-wrap">
         <table class="table">
-          <caption class="visually-hidden">Журнал проверок</caption>
+          <caption class="visually-hidden">{t("history.caption")}</caption>
           <thead>
             <tr>
-              <th scope="col">Версия</th>
-              <th scope="col">Адрес</th>
-              <th scope="col">Дата</th>
-              <th scope="col">Статус</th>
-              <th scope="col">Находки</th>
-              <th scope="col">Оценка</th>
-              <th scope="col">Отчёт</th>
+              <th scope="col">{t("history.version")}</th>
+              <th scope="col">{t("history.address")}</th>
+              <th scope="col">{t("history.date")}</th>
+              <th scope="col">{t("history.status")}</th>
+              <th scope="col">{t("history.findings")}</th>
+              <th scope="col">{t("history.score")}</th>
+              <th scope="col">{t("history.report")}</th>
             </tr>
           </thead>
           <tbody>
@@ -138,7 +145,9 @@
                 <td>
                   {scan.stats.critical + scan.stats.warning}
                   <span class="muted">
-                    ({scan.stats.critical} критично)
+                    ({t("history.criticalCount", {
+                      count: scan.stats.critical,
+                    })})
                   </span>
                 </td>
                 <td>{scan.score ?? "—"}</td>
@@ -150,7 +159,7 @@
                       openReport(scan.id);
                     }}
                   >
-                    Открыть
+                    {t("history.open")}
                   </a>
                 </td>
               </tr>
@@ -168,7 +177,7 @@
           navigate("/");
         }}
       >
-        Новая проверка
+        {t("history.newCheck")}
       </a>
     </div>
   </section>

@@ -306,6 +306,19 @@ func parseImageResult(content string) (ImageResult, error) {
 
 func imagePrompt(req ImageRequest) string {
 	var b strings.Builder
+
+	if isEnglish(req.Language) {
+		b.WriteString("Check whether the alt text matches the image (WCAG 1.1.1). ")
+		b.WriteString("Return JSON with fields: verdict (match, mismatch or unclear), ")
+		b.WriteString("reason (string), suggested_alt (string), confidence (0..1).\n")
+		fmt.Fprintf(&b, "Alt: %q\n", req.Alt)
+		if req.Context != "" {
+			fmt.Fprintf(&b, "Page context: %q\n", req.Context)
+		}
+		b.WriteString("If alt is empty or does not describe the image, set verdict=mismatch and suggest a short alt. Answer in English.")
+		return b.String()
+	}
+
 	b.WriteString("Оцени, соответствует ли alt изображению (WCAG 1.1.1). ")
 	b.WriteString("Верни JSON с полями: verdict (match, mismatch или unclear), ")
 	b.WriteString("reason (строка), suggested_alt (строка), confidence (0..1).\n")
@@ -313,14 +326,18 @@ func imagePrompt(req ImageRequest) string {
 	if req.Context != "" {
 		fmt.Fprintf(&b, "Контекст страницы: %q\n", req.Context)
 	}
-	b.WriteString("Если alt пустой или описывает не то, что на картинке — verdict=mismatch и предложи короткий alt.")
+	b.WriteString("Если alt пустой или описывает не то, что на картинке — verdict=mismatch и предложи короткий alt. Отвечай по-русски.")
 	return b.String()
+}
+
+func isEnglish(language string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(language)), "en")
 }
 
 func imageCacheKey(req ImageRequest) string {
 	hash := sha256.New()
 	hash.Write(req.Image)
-	hash.Write([]byte("\x00" + req.MimeType + "\x00" + req.Alt + "\x00" + req.Context))
+	hash.Write([]byte("\x00" + req.MimeType + "\x00" + req.Alt + "\x00" + req.Context + "\x00" + req.Language))
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
@@ -356,6 +373,23 @@ func parseLinkResult(content string) (LinkResult, error) {
 
 func linkPrompt(req LinkRequest) string {
 	var b strings.Builder
+
+	if isEnglish(req.Language) {
+		b.WriteString("Assess the link text for accessibility (WCAG 2.4.4). ")
+		b.WriteString("Return JSON with fields: meaningful (bool), matches (bool), reason (string), ")
+		b.WriteString("suggested_text (string), confidence (0..1).\n")
+		fmt.Fprintf(&b, "Link text: %q\n", req.Text)
+		fmt.Fprintf(&b, "URL: %s\n", req.URL)
+		if req.TargetTitle != "" {
+			fmt.Fprintf(&b, "Target page title: %q\n", req.TargetTitle)
+		}
+		if req.TargetText != "" {
+			fmt.Fprintf(&b, "First paragraph of the target page: %q\n", req.TargetText)
+		}
+		b.WriteString("If the text is unclear out of context, suggest a short clear text in suggested_text. Answer in English.")
+		return b.String()
+	}
+
 	b.WriteString("Оцени текст ссылки для доступности (WCAG 2.4.4). ")
 	b.WriteString("Верни JSON с полями: meaningful (bool), matches (bool), reason (строка), ")
 	b.WriteString("suggested_text (строка), confidence (0..1).\n")
@@ -367,14 +401,14 @@ func linkPrompt(req LinkRequest) string {
 	if req.TargetText != "" {
 		fmt.Fprintf(&b, "Первый абзац целевой страницы: %q\n", req.TargetText)
 	}
-	b.WriteString("Если текст непонятен вне контекста — предложи короткий понятный текст в suggested_text.")
+	b.WriteString("Если текст непонятен вне контекста — предложи короткий понятный текст в suggested_text. Отвечай по-русски.")
 
 	return b.String()
 }
 
 func cacheKey(req LinkRequest) string {
 	sum := sha256.Sum256([]byte(
-		req.Text + "\x00" + req.URL + "\x00" + req.TargetTitle + "\x00" + req.TargetText,
+		req.Text + "\x00" + req.URL + "\x00" + req.TargetTitle + "\x00" + req.TargetText + "\x00" + req.Language,
 	))
 	return hex.EncodeToString(sum[:])
 }

@@ -1,4 +1,10 @@
+import { clientID } from "./lib/clientId";
+import { getLocale } from "./lib/i18n.svelte";
 import type { Scan } from "./types";
+
+function requestHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return { ...extra, "X-Client-ID": clientID(), "X-Lang": getLocale() };
+}
 
 async function readError(response: Response): Promise<string> {
   try {
@@ -12,9 +18,7 @@ async function readError(response: Response): Promise<string> {
 export async function createScan(url: string, depth: number): Promise<Scan> {
   const response = await fetch("/api/scans", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: requestHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ url, depth }),
   });
 
@@ -26,7 +30,9 @@ export async function createScan(url: string, depth: number): Promise<Scan> {
 }
 
 export async function getScan(id: string): Promise<Scan> {
-  const response = await fetch(`/api/scans/${id}`);
+  const response = await fetch(`/api/scans/${id}`, {
+    headers: requestHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error(await readError(response));
@@ -41,11 +47,32 @@ export async function listScans(url = "", limit = 20): Promise<Scan[]> {
     params.set("url", url.trim());
   }
 
-  const response = await fetch(`/api/scans?${params.toString()}`);
+  const response = await fetch(`/api/scans?${params.toString()}`, {
+    headers: requestHeaders(),
+  });
 
   if (!response.ok) {
     throw new Error(await readError(response));
   }
 
   return (await response.json()) as Scan[];
+}
+
+/**
+ * PDF-отчёт отдаётся только владельцу скана, поэтому качаем через fetch:
+ * обычный переход по ссылке не отправит X-Client-ID.
+ */
+export async function getScanPdf(
+  id: string,
+  lang: "ru" | "en",
+): Promise<Blob> {
+  const response = await fetch(`/api/scans/${id}/pdf?lang=${lang}`, {
+    headers: requestHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  return await response.blob();
 }

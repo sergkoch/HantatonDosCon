@@ -1,30 +1,31 @@
 import type { FindingKind } from "../types";
+import { type Locale, translate } from "./messages";
 
-export function scoreLabel(score: number | null): string {
+export function scoreLabel(score: number | null, locale: Locale = "ru"): string {
   if (score === null) {
-    return "Проверка ещё идёт";
+    return translate(locale, "score.inProgress");
   }
 
   if (score >= 80) {
-    return "Хорошо";
+    return translate(locale, "score.good");
   }
 
   if (score >= 50) {
-    return "Нужно исправить";
+    return translate(locale, "score.needsWork");
   }
 
-  return "Критично";
+  return translate(locale, "score.critical");
 }
 
-const kindLabels: Record<FindingKind, string> = {
-  image: "Изображение",
-  pdf: "PDF",
-  link: "Ссылка",
-  page: "Страница",
-  form: "Форма",
-  table: "Таблица",
-};
+const kindKeys = {
+  image: "kind.image",
+  pdf: "kind.pdf",
+  link: "kind.link",
+  page: "kind.page",
+  form: "kind.form",
+  table: "kind.table",
+} as const satisfies Record<FindingKind, string>;
 
-export function kindLabel(kind: FindingKind): string {
-  return kindLabels[kind];
+export function kindLabel(kind: FindingKind, locale: Locale = "ru"): string {
+  return translate(locale, kindKeys[kind]);
 }

@@ -7,6 +7,8 @@ type ImageRequest struct {
 	MimeType string
 	Alt      string
 	Context  string
+	// Language is the answer language: "ru" or "en".
+	Language string
 }
 
 type ImageResult struct {
@@ -21,6 +23,8 @@ type LinkRequest struct {
 	URL         string
 	TargetTitle string
 	TargetText  string
+	// Language is the answer language: "ru" or "en".
+	Language string
 }
 
 type LinkResult struct {

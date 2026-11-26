@@ -13,6 +13,7 @@ func TestMemoryListAndLatestDone(t *testing.T) {
 
 	older := Scan{
 		ID:        "older",
+		Owner:     "browser-a",
 		URL:       "https://example.ru",
 		Status:    StatusDone,
 		Version:   1,
@@ -20,6 +21,7 @@ func TestMemoryListAndLatestDone(t *testing.T) {
 	}
 	newer := Scan{
 		ID:        "newer",
+		Owner:     "browser-a",
 		URL:       "https://example.ru",
 		Status:    StatusDone,
 		Version:   2,
@@ -27,7 +29,8 @@ func TestMemoryListAndLatestDone(t *testing.T) {
 	}
 	other := Scan{
 		ID:        "other",
-		URL:       "https://other.ru",
+		Owner:     "browser-b",
+		URL:       "https://example.ru",
 		Status:    StatusDone,
 		Version:   1,
 		CreatedAt: now,
@@ -39,7 +42,7 @@ func TestMemoryListAndLatestDone(t *testing.T) {
 		}
 	}
 
-	list, err := memory.List(ctx, "https://example.ru", 10)
+	list, err := memory.List(ctx, "https://example.ru", "browser-a", 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,11 +50,23 @@ func TestMemoryListAndLatestDone(t *testing.T) {
 		t.Fatalf("unexpected list: %+v", list)
 	}
 
-	latest, err := memory.LatestDone(ctx, "https://example.ru")
+	foreign, err := memory.List(ctx, "https://example.ru", "browser-b", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(foreign) != 1 || foreign[0].ID != "other" {
+		t.Fatalf("history of another browser leaked: %+v", foreign)
+	}
+
+	latest, err := memory.LatestDone(ctx, "https://example.ru", "browser-a")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if latest.ID != "newer" {
 		t.Fatalf("expected newer, got %s", latest.ID)
+	}
+
+	if _, err := memory.LatestDone(ctx, "https://example.ru", "browser-c"); err != ErrNotFound {
+		t.Fatalf("expected ErrNotFound for an unknown browser, got %v", err)
 	}
 }
