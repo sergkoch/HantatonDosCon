@@ -520,29 +520,6 @@ a:hover {
   font-weight: 600;
 }
 
-.pdf-download {
-  position: relative;
-  display: inline-flex;
-}
-
-.pdf-download__button {
-  gap: 8px;
-}
-
-.pdf-download__chevron {
-  transition: transform 0.15s ease;
-}
-
-.pdf-download__chevron.is-open {
-  transform: rotate(180deg);
-}
-
-.pdf-download .lang-menu {
-  top: calc(100% + 8px);
-  right: 0;
-  left: auto;
-}
-
 .site-main {
   flex: 1;
   padding-block: var(--space-8) var(--space-7);
