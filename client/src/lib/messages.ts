@@ -17,13 +17,24 @@ const ru = {
   "layout.langButton": "Язык",
   "layout.langMenu": "Выбор языка",
   "layout.footer": "Учебный проект команды. Проверка доступности контента.",
-  "footer.contacts": "Контакты команды:",
+  "layout.contacts": "Контакты команды:",
   "footer.nameAndrey": "Андрей",
   "footer.roleAndrey": "ведущий программист",
   "footer.nameKonstantin": "Константин",
   "footer.roleKonstantin": "дизайнер",
   "footer.nameSergey": "Сергей",
   "footer.roleSergey": "презентатор и программист",
+
+  "cookie.label": "Использование файлов cookie",
+  "cookie.text":
+    "Мы используем файлы cookie, чтобы сайт работал корректно и запоминал ваши настройки (например, выбранную тему). Продолжая работу, вы соглашаетесь с этим.",
+  "cookie.accept": "Принять",
+
+  "error.notFound": "Скан не найден",
+  "error.invalidInput": "Проверьте адрес и глубину",
+  "error.rateLimited": "Слишком много запросов, попробуйте позже",
+  "error.internal": "Внутренняя ошибка. Попробуйте ещё раз",
+  "error.http": "Ошибка {status}",
 
   "home.badge": "Проверка доступности · WCAG",
   "home.titleBefore": "Сайт, который ",
@@ -182,13 +193,24 @@ const en: Record<MessageKey, string> = {
   "layout.langButton": "Language",
   "layout.langMenu": "Language selection",
   "layout.footer": "Team training project. Content accessibility check.",
-  "footer.contacts": "Team contacts:",
+  "layout.contacts": "Team contacts:",
   "footer.nameAndrey": "Andrey",
   "footer.roleAndrey": "lead programmer",
   "footer.nameKonstantin": "Konstantin",
   "footer.roleKonstantin": "designer",
   "footer.nameSergey": "Sergey",
   "footer.roleSergey": "presenter and programmer",
+
+  "cookie.label": "Cookie usage",
+  "cookie.text":
+    "We use cookies so the site works correctly and remembers your settings (for example, the chosen theme). By continuing to use the site you agree to this.",
+  "cookie.accept": "Accept",
+
+  "error.notFound": "Scan not found",
+  "error.invalidInput": "Check the address and depth",
+  "error.rateLimited": "Too many requests, try again later",
+  "error.internal": "Internal error. Please try again",
+  "error.http": "Error {status}",
 
   "home.badge": "Accessibility check · WCAG",
   "home.titleBefore": "A site that ",

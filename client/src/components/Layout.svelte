@@ -252,7 +252,7 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p class="site-footer__contacts-title">{t("footer.contacts")}</p>
+      <p class="site-footer__contacts-title">{t("layout.contacts")}</p>
       <ul class="site-footer__contacts">
         <li class="site-footer__contact">
           <span class="site-footer__contact-name">{t("footer.nameAndrey")}</span>

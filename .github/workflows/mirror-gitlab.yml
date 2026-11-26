@@ -23,4 +23,4 @@ jobs:
           AUTH_URL="https://oauth2:${GITLAB_TOKEN}@${GITLAB_REPO_URL#https://}"
           git clone --mirror "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" mirror.git
           cd mirror.git
-          git push --mirror "$AUTH_URL"
+          git push --prune "$AUTH_URL" "+refs/heads/*:refs/heads/*" "+refs/tags/*:refs/tags/*"

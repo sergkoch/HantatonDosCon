@@ -63,8 +63,11 @@ gh variable set DEPLOY_ENABLED --body "true"
 - **Приватность ключа.** `DEPLOY_SSH_KEY` — ключ с sudo-доступом. Репозиторий
   публичный; секреты шифруются, но безопаснее завести **отдельный деплой-ключ**
   с ограниченными правами, а не root-ключ.
-- **GitLab.** Альтернатива GitHub Action — встроенный **Pull Mirror** в GitLab
-  (Settings → Repository → Mirroring). Тогда `mirror-gitlab.yml` не нужен.
+- **GitLab.** Для зеркала на `main` должен быть разрешён **force-push**
+  (Settings → Repository → Protected branches → `main` → Allow force push),
+  иначе пуш отклоняется: «not allowed to force push to a protected branch».
+  Альтернатива — встроенный **Pull Mirror** в GitLab (Settings → Repository →
+  Mirroring), тогда `mirror-gitlab.yml` не нужен.
 - **Локальный Docker.** Docker Desktop в текущей среде не стартует (нет WSL2-
   дистрибутива). Docker-стек и зеркало запускаются на сервере и в GitHub Actions.
 
