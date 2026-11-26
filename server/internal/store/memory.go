@@ -130,6 +130,22 @@ func (m *Memory) removeOldestLocked() {
 	}
 }
 
+// DeleteByOwner удаляет все сканы одного клиента.
+func (m *Memory) DeleteByOwner(_ context.Context, owner string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	deleted := 0
+	for id, scan := range m.scans {
+		if scan.Owner == owner {
+			delete(m.scans, id)
+			deleted++
+		}
+	}
+
+	return deleted, nil
+}
+
 func cloneScan(scan Scan) Scan {
 	scan.Findings = append([]Finding(nil), scan.Findings...)
 

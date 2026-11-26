@@ -752,6 +752,17 @@ a:hover {
   background: var(--accent-weak-2);
 }
 
+.button--danger {
+  color: var(--critical);
+  background: var(--critical-bg);
+  border-color: var(--critical-border);
+}
+
+.button--danger:hover:not(:disabled) {
+  border-color: var(--critical);
+  background: var(--critical-bg);
+}
+
 /* ---------- Секции и карточки ---------- */
 
 .section {
@@ -1330,6 +1341,22 @@ a:hover {
   flex-wrap: wrap;
   gap: var(--space-3);
   margin-top: var(--space-5);
+}
+
+.actions--between {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-clear {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.history-clear__text {
+  color: var(--muted);
 }
 
 .visually-hidden {

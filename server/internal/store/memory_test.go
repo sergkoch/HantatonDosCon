@@ -129,3 +129,43 @@ func TestMemoryLimit(t *testing.T) {
 		t.Fatalf("expected %d scans, got %d", maxMemoryScans, len(scans))
 	}
 }
+
+func TestMemoryDeleteByOwner(t *testing.T) {
+	ctx := context.Background()
+	memory := NewMemory()
+	now := time.Now().UTC()
+
+	for _, scan := range []Scan{
+		{ID: "a1", Owner: "browser-a", URL: "https://a.ru", Status: StatusDone, CreatedAt: now},
+		{ID: "a2", Owner: "browser-a", URL: "https://b.ru", Status: StatusDone, CreatedAt: now},
+		{ID: "b1", Owner: "browser-b", URL: "https://a.ru", Status: StatusDone, CreatedAt: now},
+	} {
+		if err := memory.Create(ctx, scan); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	deleted, err := memory.DeleteByOwner(ctx, "browser-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 2 {
+		t.Fatalf("expected 2 deleted, got %d", deleted)
+	}
+
+	left, err := memory.List(ctx, "", "browser-a", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(left) != 0 {
+		t.Fatalf("expected empty history, got %+v", left)
+	}
+
+	other, err := memory.List(ctx, "", "browser-b", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(other) != 1 || other[0].ID != "b1" {
+		t.Fatalf("history of another browser must stay, got %+v", other)
+	}
+}

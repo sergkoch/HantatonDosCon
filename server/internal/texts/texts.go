@@ -101,6 +101,7 @@ const (
 	ErrNotFound           Key = "err.notFound"
 	ErrStore              Key = "err.store"
 	ErrReport             Key = "err.report"
+	ErrClientID           Key = "err.clientId"
 	DocTitle              Key = "doc.title"
 	DocAuthor             Key = "doc.author"
 	PDFPage               Key = "pdf.page"
@@ -202,6 +203,7 @@ var catalog = map[Lang]map[Key]string{
 		ErrNotFound:     "не найдено",
 		ErrStore:        "ошибка хранилища",
 		ErrReport:       "не удалось построить отчёт",
+		ErrClientID:     "нужен идентификатор браузера: обновите страницу",
 
 		DocTitle:          "Отчёт о доступности",
 		DocAuthor:         "Доступный контент",
@@ -303,6 +305,7 @@ var catalog = map[Lang]map[Key]string{
 		ErrNotFound:     "not found",
 		ErrStore:        "store error",
 		ErrReport:       "report generation failed",
+		ErrClientID:     "browser identity is required: reload the page",
 
 		DocTitle:          "Accessibility report",
 		DocAuthor:         "Accessible Content",

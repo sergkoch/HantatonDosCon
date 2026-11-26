@@ -82,6 +82,7 @@ func NewRouter(opts Options) *gin.Engine {
 	api.GET("/health", h.health)
 	api.POST("/scans", limitBody(maxRequestBodyBytes), rateLimit(limiter), h.createScan)
 	api.GET("/scans", h.listScans)
+	api.DELETE("/scans", h.clearHistory)
 	api.GET("/scans/:id", h.getScan)
 	api.GET("/scans/:id/pdf", h.downloadPDF)
 
@@ -103,7 +104,7 @@ func cors() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", origin)
-		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Client-ID")
 
 		if c.Request.Method == http.MethodOptions {

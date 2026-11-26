@@ -89,3 +89,18 @@ export async function getScanPdf(
 
   return await response.blob();
 }
+
+/** Удаляет все проверки текущего браузера. */
+export async function clearHistory(): Promise<number> {
+  const response = await fetch("/api/scans", {
+    method: "DELETE",
+    headers: requestHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  const body = (await response.json()) as { deleted?: number };
+  return body.deleted ?? 0;
+}

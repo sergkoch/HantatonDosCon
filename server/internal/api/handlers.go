@@ -157,6 +157,25 @@ func (h *handler) createScan(c *gin.Context) {
 	c.JSON(http.StatusCreated, scan)
 }
 
+// clearHistory удаляет все сканы текущего браузера.
+func (h *handler) clearHistory(c *gin.Context) {
+	lang := requestLang(c)
+	owner := clientID(c)
+	if owner == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.T(lang, texts.ErrClientID)})
+		return
+	}
+
+	deleted, err := h.store.DeleteByOwner(c.Request.Context(), owner)
+	if err != nil {
+		h.log.Error("clear history", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": texts.T(lang, texts.ErrStore)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"deleted": deleted})
+}
+
 func (h *handler) listScans(c *gin.Context) {
 	targetURL := strings.TrimSpace(c.Query("url"))
 	limit := 20

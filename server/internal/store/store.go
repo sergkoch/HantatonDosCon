@@ -86,4 +86,7 @@ type Store interface {
 	List(ctx context.Context, targetURL, owner string, limit int) ([]Scan, error)
 	// LatestDone returns the most recent completed scan of a URL for one owner.
 	LatestDone(ctx context.Context, targetURL, owner string) (Scan, error)
+	// DeleteByOwner removes every scan of one client and reports how many
+	// were deleted.
+	DeleteByOwner(ctx context.Context, owner string) (int, error)
 }
