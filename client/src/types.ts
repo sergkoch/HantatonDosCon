@@ -17,6 +17,9 @@ export type Finding = {
   element: string;
   recommendation: string;
   wcag: string;
+  /** Те же тексты на втором языке, если скан сохранён с переводом. */
+  titleAlt?: string;
+  recommendationAlt?: string;
 };
 
 export type ScanStats = {
