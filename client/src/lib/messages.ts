@@ -29,7 +29,7 @@ const ru = {
   "footer.nameKonstantin": "Константин",
   "footer.roleKonstantin": "дизайнер",
   "footer.nameSergey": "Сергей",
-  "footer.roleSergey": "презентатор и программист",
+  "footer.roleSergey": "капитан команды и программист",
 
   "cookie.label": "Использование файлов cookie",
   "cookie.title": "Cookies и локальное хранилище",
@@ -251,7 +251,7 @@ const en: Record<MessageKey, string> = {
   "footer.nameKonstantin": "Konstantin",
   "footer.roleKonstantin": "designer",
   "footer.nameSergey": "Sergey",
-  "footer.roleSergey": "presenter and programmer",
+  "footer.roleSergey": "team captain and programmer",
 
   "cookie.label": "Cookie usage",
   "cookie.title": "Cookies and local storage",
