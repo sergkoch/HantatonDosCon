@@ -7,9 +7,9 @@
 | API | **Go + Gin** | простой роутинг, один бинарник, понятен новичкам |
 | Краулер | **Colly + goquery** | обход домена, глубина, `robots.txt`, конкурентность |
 | HTML | **goquery** | знакомый CSS-селекторный API |
-| PDF-структура | **go-pdfium** (PDFium) | текст, теги, `/Alt`, рендер; лицензия BSD |
-| PDF-валидация | **pdfcpu** | Apache 2.0, проверка файла, текст, изображения |
-| OCR | **Tesseract CLI** | офлайн, русский, без Python |
+| PDF-структура | **go-pdfium** (PDFium в WASM) | текст, теги, `/Alt`, `Title`, `Lang`; лицензия BSD |
+| PDF-валидация | **pdfcpu** | Apache 2.0, проверка файла, текст, fallback |
+| OCR | **Tesseract CLI — план** | в образ не добавлен; PDF без текста сразу `critical` |
 | ИИ | **HTTP-клиент на Go** | vision и текст через API, без SDK |
 | БД | **PostgreSQL + pgx + goose** | надёжно, миграции, без ORM-магии |
 | Отчёт | **go-pdf/fpdf + encoding/csv** | PDF и CSV на чистом Go |
@@ -18,13 +18,16 @@
 
 ## PDF без Python
 
-Нужны четыре вещи:
+Сейчас работают три вещи:
 
-1. **Текстовый слой.** `go-pdfium` извлекает текст. Если текста нет — это скан.
+1. **Текстовый слой.** `go-pdfium` извлекает текст. Если текста нет — это скан,
+   и находка сразу `critical`.
 2. **Теги структуры.** PDFium отдаёт `FPDF_StructTree_*`, `FPDF_StructElement_GetAltText`,
    `FPDF_StructElement_GetType`.
-3. **Рендер страницы.** PDFium рисует страницу в PNG.
-4. **OCR.** Tesseract CLI распознаёт PNG: `tesseract page.png stdout -l rus+eng`.
+3. **Метаданные.** `pdfcpu` — fallback для `Title`, `Lang` и признака тегов.
+
+Рендер страницы и OCR — план, не подключены. Tesseract CLI понадобится, если
+решим распознавать сканы: `tesseract page.png stdout -l rus+eng`.
 
 `pdfcpu` — запасной вариант: быстрая проверка файла, текста и метаданных, если
 PDFium не справился.
@@ -38,6 +41,8 @@ PDFium не справился.
 - **pdfcpu** — быстрая базовая проверка и fallback.
 
 ### Почему Tesseract CLI, а не Go-обёртка
+
+Это план на случай подключения OCR:
 
 - CLI не тянет cgo в основной сервис.
 - Падение OCR не роняет API.
@@ -99,25 +104,23 @@ type Client interface {
 
 ## PDF-спайк на день 1
 
-Проверить на реальном PDF:
+Проверено на реальном PDF:
 
-- [ ] открыть файл;
-- [ ] получить количество страниц;
-- [ ] извлечь текст;
-- [ ] найти `/StructTreeRoot` и `/MarkInfo`;
-- [ ] пройти по дереву и достать `/Alt`;
+- [x] открыть файл;
+- [x] получить количество страниц;
+- [x] извлечь текст;
+- [x] найти `/StructTreeRoot` и `/MarkInfo`;
+- [x] пройти по дереву и достать `/Alt`;
 - [ ] отрендерить страницу в PNG;
-- [ ] прогнать PNG через Tesseract.
+- [ ] прогнать PNG через Tesseract (OCR — план).
 
-Если всё получается — двигаемся на PDFium. Если нет — упрощаем проверки до
-текстового слоя и метаданных, а глубину PDF/UA оставляем на бонус.
+PDFium в режиме WASM закрыл основную задачу: текст, теги, `/Alt`, `Title`,
+`Lang`. Если PDFium падает на конкретном файле, остаётся fallback на `pdfcpu`.
 
 ## Docker для PDFium
 
-В образе нужны:
+`libpdfium.so`, `CGO_ENABLED=1` и `LD_LIBRARY_PATH` не нужны: PDFium
+встроен в бинарник как WebAssembly (Wazero), образ собирается с `CGO_ENABLED=0`.
 
-- `libpdfium.so`;
-- `tesseract-ocr` и `tesseract-ocr-rus`;
-- `ca-certificates`.
-
-Сборка с `CGO_ENABLED=1`, `CGO_LDFLAGS`, `LD_LIBRARY_PATH`. Это задача для ответственного за PDF.
+Если позже включим OCR, в образ нужно добавить `tesseract-ocr`,
+`tesseract-ocr-rus` и `ca-certificates`.

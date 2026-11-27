@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { clearHistory, listScans } from "../api";
+  import { clearHistory, createScan, listScans } from "../api";
   import { isPlainClick, navigate } from "../lib/router.svelte";
   import { getLocale, t } from "../lib/i18n.svelte";
+  import { historySummary } from "../lib/insights";
   import type { Scan } from "../types";
 
   let scans = $state<Scan[]>([]);
@@ -12,6 +13,27 @@
   let clearOpen = $state(false);
   let clearing = $state(false);
   let cleared = $state(0);
+  let rerunID = $state("");
+  let rerunError = $state("");
+
+  const summary = $derived(historySummary(scans));
+
+  async function repeatScan(scan: Scan) {
+    if (rerunID !== "") return;
+
+    rerunID = scan.id;
+    rerunError = "";
+
+    try {
+      const next = await createScan(scan.url, scan.depth);
+      navigate(`/report/${next.id}`);
+    } catch (cause) {
+      rerunError =
+        cause instanceof Error ? cause.message : t("history.repeatError");
+    } finally {
+      rerunID = "";
+    }
+  }
 
   async function clearAll() {
     clearing = true;
@@ -133,6 +155,29 @@
       </div>
     </form>
 
+    {#if !loading && !error && scans.length > 0}
+      <div class="summary">
+        <div class="summary__item">
+          <span class="summary__value">{summary.total}</span>
+          <span class="summary__label">{t("history.summaryTotal")}</span>
+        </div>
+        <div class="summary__item summary__item--score">
+          <span class="summary__value">{summary.averageScore ?? "—"}</span>
+          <span class="summary__label">{t("history.summaryAverage")}</span>
+        </div>
+        <div class="summary__item summary__item--critical">
+          <span class="summary__value">{summary.critical}</span>
+          <span class="summary__label">{t("history.summaryCritical")}</span>
+        </div>
+        <div class="summary__item">
+          <span class="summary__value summary__value--date">
+            {summary.lastDate ? formatDate(summary.lastDate) : "—"}
+          </span>
+          <span class="summary__label">{t("history.summaryLast")}</span>
+        </div>
+      </div>
+    {/if}
+
     {#if error}
       <p class="field__error" role="alert">{error}</p>
     {:else if loading}
@@ -171,16 +216,29 @@
                 </td>
                 <td>{scan.score ?? "—"}</td>
                 <td>
-                  <a
-                    href={`/report/${scan.id}`}
-                    onclick={(event) => {
-                      if (!isPlainClick(event)) return;
-                      event.preventDefault();
-                      openReport(scan.id);
-                    }}
-                  >
-                    {t("history.open")}
-                  </a>
+                  <div class="row-actions">
+                    <a
+                      href={`/report/${scan.id}`}
+                      onclick={(event) => {
+                        if (!isPlainClick(event)) return;
+                        event.preventDefault();
+                        openReport(scan.id);
+                      }}
+                    >
+                      {t("history.open")}
+                    </a>
+                    <button
+                      class="button button--ghost button--small"
+                      type="button"
+                      disabled={rerunID !== ""}
+                      aria-label={`${t("history.repeat")}: ${scan.url}`}
+                      onclick={() => void repeatScan(scan)}
+                    >
+                      {rerunID === scan.id
+                        ? t("history.repeating")
+                        : t("history.repeat")}
+                    </button>
+                  </div>
                 </td>
               </tr>
             {/each}
@@ -193,6 +251,10 @@
       <p class="status" aria-live="polite">
         {t("history.cleared", { count: cleared })}
       </p>
+    {/if}
+
+    {#if rerunError}
+      <p class="field__error" role="alert">{rerunError}</p>
     {/if}
 
     <div class="actions actions--between">
