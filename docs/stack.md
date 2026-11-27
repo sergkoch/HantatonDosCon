@@ -9,7 +9,7 @@
 | HTML | **goquery** | знакомый CSS-селекторный API |
 | PDF-структура | **go-pdfium** (PDFium) | текст, теги, `/Alt`, рендер; лицензия BSD |
 | PDF-валидация | **pdfcpu** | Apache 2.0, проверка файла, текст, изображения |
-| OCR | **Tesseract CLI** | офлайн, русский, без Python |
+| OCR | **Tesseract CLI (план)** | не подключён: PDF без текста сразу critical |
 | ИИ | **HTTP-клиент на Go** | vision и текст через API, без SDK |
 | БД | **PostgreSQL + pgx + goose** | надёжно, миграции, без ORM-магии |
 | Отчёт | **go-pdf/fpdf + encoding/csv** | PDF и CSV на чистом Go |
@@ -18,16 +18,20 @@
 
 ## PDF без Python
 
-Нужны четыре вещи:
+Сейчас проверяем три вещи:
 
-1. **Текстовый слой.** `go-pdfium` извлекает текст. Если текста нет — это скан.
+1. **Текстовый слой.** `go-pdfium` извлекает текст. Если текста нет — это скан,
+   и находка сразу `critical`.
 2. **Теги структуры.** PDFium отдаёт `FPDF_StructTree_*`, `FPDF_StructElement_GetAltText`,
    `FPDF_StructElement_GetType`.
-3. **Рендер страницы.** PDFium рисует страницу в PNG.
-4. **OCR.** Tesseract CLI распознаёт PNG: `tesseract page.png stdout -l rus+eng`.
+3. **Метаданные.** `Title` и `Lang` документа.
 
 `pdfcpu` — запасной вариант: быстрая проверка файла, текста и метаданных, если
 PDFium не справился.
+
+**OCR пока не подключён.** Tesseract в образе нет, поэтому скан без текстового
+слоя не распознаётся, а честно помечается критичной находкой. План — в разделе
+«Почему Tesseract CLI».
 
 ### Почему PDFium, а не pdfcpu
 
@@ -38,6 +42,8 @@ PDFium не справился.
 - **pdfcpu** — быстрая базовая проверка и fallback.
 
 ### Почему Tesseract CLI, а не Go-обёртка
+
+OCR пока не включён, но если включать — то отдельным CLI:
 
 - CLI не тянет cgo в основной сервис.
 - Падение OCR не роняет API.
@@ -114,10 +120,10 @@ type Client interface {
 
 ## Docker для PDFium
 
-В образе нужны:
+## Docker для PDFium
 
-- `libpdfium.so`;
-- `tesseract-ocr` и `tesseract-ocr-rus`;
-- `ca-certificates`.
+Образ собирается **без CGO и без libpdfium**: `go-pdfium` запускает PDFium
+в WebAssembly через wazero, бинарник статический (distroless). Поэтому в образе
+не нужны `libpdfium.so`, `CGO_ENABLED=1` и `LD_LIBRARY_PATH`.
 
-Сборка с `CGO_ENABLED=1`, `CGO_LDFLAGS`, `LD_LIBRARY_PATH`. Это задача для ответственного за PDF.
+Когда подключим OCR, в образ добавятся `tesseract-ocr` и `tesseract-ocr-rus`.

@@ -10,12 +10,13 @@ nginx ── Svelte SPA (client/dist)
   │ /api/*
   ▼
 Go API (server)
-  ├── store      PostgreSQL: scans, pages, findings
+  ├── store      PostgreSQL: scans, findings
   ├── crawler    Colly: обход домена, извлечение медиа
-  ├── checks     alt, ссылки, заголовки, PDF
-  ├── pdf        go-pdfium + Tesseract CLI
+  ├── checks     alt, ссылки, заголовки, формы, таблицы
+  ├── pdf        go-pdfium (WASM, в процессе) + pdfcpu
   ├── ai         HTTP-клиент: vision и текст
-  └── report     maroto (PDF), encoding/csv
+  ├── texts      RU/EN-словарь находок и отчётов
+  └── report     go-pdf/fpdf (PDF), encoding/csv
 ```
 
 ## Почему один сервис
@@ -38,7 +39,8 @@ Go API (server)
 | `internal/store` | память, потом PostgreSQL |
 | `internal/crawler` | обход сайта, извлечение |
 | `internal/checks` | проверки и оценки |
-| `internal/pdf` | PDF-анализ и OCR |
+| `internal/pdf` | PDF-анализ (PDFium в WASM, без OCR) |
+| `internal/texts` | локализация находок и PDF-отчёта |
 | `internal/ai` | vision и текст |
 | `internal/report` | PDF/CSV |
 | `internal/config` | переменные окружения |
@@ -72,7 +74,10 @@ Go API (server)
 - `robots.txt` уважаем.
 - SSRF: блокируем приватные IP, `localhost`, metadata-адреса.
 - Таймауты и лимиты: 50 страниц, 20 МБ на файл, 30 секунд на запрос.
-- PDF-анализатор — отдельный процесс, чтобы падение не роняло API.
+- PDF-анализатор работает в процессе API: PDFium собран в WebAssembly,
+  отдельный процесс и CGO не нужны. Падение изолируется recover в воркере.
+- OCR (Tesseract) не подключён: PDF без текстового слоя сразу получает
+  `critical`.
 - Секреты — только в переменных окружения.
 - Не храним персональные данные.
 
@@ -83,7 +88,7 @@ Go API (server)
 - **Интерфейс:** лендинг, форма, экран прогресса, отчёт, фильтры, CSV.
 - **API и данные:** роуты, store, миграции, тесты.
 - **Краулер:** Colly, извлечение медиа, проверки `alt` и ссылок.
-- **PDF:** go-pdfium, Tesseract, текстовый слой, теги, `/Alt`.
+- **PDF:** go-pdfium, текстовый слой, теги, `/Alt`; OCR — план.
 - **ИИ:** vision по картинкам, текст ссылок, кэш, деградация.
 - **Данные и QA:** демо-сайт, тест-корпус, e2e, документация.
 - **Деплой:** Docker, nginx, домен, TLS.

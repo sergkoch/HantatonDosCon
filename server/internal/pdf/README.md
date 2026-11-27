@@ -10,7 +10,7 @@
 2. Есть ли теги структуры (`/StructTreeRoot`, `/MarkInfo /Marked`).
 3. Есть ли `/Alt` у фигур.
 4. Есть ли `Title` и `Lang`.
-5. Можно ли отрендерить страницу для OCR.
+5. (План) распознать скан через OCR.
 
 ## Инструменты
 
@@ -18,7 +18,8 @@
   без cgo и без `pdfium.dll`. Лицензия BSD.
 - `github.com/pdfcpu/pdfcpu` — fallback для `Title`, `Lang` и признака тегов.
   Apache 2.0.
-- `tesseract` CLI — OCR, Apache 2.0.
+- `tesseract` CLI — OCR, Apache 2.0. **Пока не подключён**: скан без текста
+  помечается `critical`.
 
 ## План
 
@@ -39,7 +40,7 @@
 - [x] реализовать `Analyzer`;
 - [x] таймаут 30 секунд;
 - [x] лимит 50 страниц и 20 МБ;
-- [ ] отдельный процесс/контейнер, чтобы падение не роняло API;
+- [ ] OCR сканов через Tesseract;
 - [x] `pdfcpu` для метаданных и fallback-признака тегов.
 
 ## Docker
@@ -47,7 +48,7 @@
 В режиме WebAssembly `libpdfium.so`, `CGO_ENABLED=1` и `LD_LIBRARY_PATH` не
 нужны: PDFium встроен в бинарник.
 
-Для OCR в образе нужны:
+Для OCR в образе понадобятся (сейчас не подключён):
 
 - `tesseract-ocr`;
 - `tesseract-ocr-rus`;
@@ -66,5 +67,5 @@
 Не роняем API. Оставляем fallback:
 
 - `pdfcpu` для текстового слоя (эвристика по операторам), тегов, `Title`, `Lang`;
-- Tesseract для сканов;
+- OCR для сканов — когда подключим Tesseract;
 - глубину PDF/UA — на бонус.

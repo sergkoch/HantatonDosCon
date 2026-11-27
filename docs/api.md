@@ -221,6 +221,44 @@ curl -X DELETE https://not-domain.ru/api/scans \
 чужие проверки. В интерфейсе кнопка «Очистить историю» на странице истории
 спрашивает подтверждение.
 
+## GET /api/scans/{id}/gate
+
+CI-гейт: проверяет скан по порогам и годится для пайплайна.
+
+Параметры:
+
+- `min_score` — минимальная оценка, `0..100`, по умолчанию `0`;
+- `max_critical` — сколько критичных находок допустимо, `≥ 0`, по умолчанию `0`.
+
+Требует `X-Client-ID` владельца; чужой скан отдаёт `404`.
+
+```bash
+curl --fail --silent --show-error \
+  "https://not-domain.ru/api/scans/<id>/gate?min_score=80&max_critical=0" \
+  -H "X-Client-ID: $ACCESSIBLE_CLIENT_ID"
+```
+
+Ответ (`200` при успехе, `409` при провале):
+
+```json
+{
+  "id": "…",
+  "url": "https://example.ru",
+  "status": "done",
+  "passed": false,
+  "score": 71,
+  "critical": 2,
+  "warning": 5,
+  "limits": { "minScore": 80, "maxCritical": 0 },
+  "reasons": [
+    "Оценка 71 ниже порога 80.",
+    "Критических находок 2 больше допустимого 0."
+  ]
+}
+```
+
+`queued` и `running` дают `409 not_ready`, неверный параметр — `400`.
+
 ## Ошибки
 
 ```json

@@ -21,20 +21,20 @@ bun run build
 
 ```
 src/
-  main.ts           точка входа
-  App.svelte        маршруты
-  api.ts            запросы к API
-  types.ts          типы данных
-  lib/              router, score, подписи
-  components/       Layout, Button, Card, Badge
-  pages/            Home, Scan, Report, NotFound
-  styles.css        токены и стили
+  main.ts              точка входа
+  App.svelte           маршруты и скелетон ленивых страниц
+  api.ts               запросы к API
+  types.ts             типы данных
+  lib/                 router, routes, i18n, messages, insights, cookieConsent
+  components/          Layout, Button, Card, Badge, CookieConsent, RouteSkeleton
+  pages/               Home, History, Report, NotFound
+  styles.css           токены и стили
 ```
 
 ## Правила
 
-- Строки интерфейса — по-русски.
-- Цвета — только через `var(--color-...)`.
+- Интерфейс двуязычный: русский и английский, тексты — в `lib/messages.ts`.
+- Цвета — только через `var(--...)`.
 - Один шрифт.
 - Каждый интерактивный элемент доступен с клавиатуры.
 - У полей есть `label`.
