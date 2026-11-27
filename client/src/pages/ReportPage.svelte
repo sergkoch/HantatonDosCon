@@ -286,7 +286,26 @@
 
 {#if error}
   <div class="container">
-    <p class="field__error" role="alert">{error}</p>
+    <section class="section" aria-labelledby="report-error-title">
+      <p class="hero__eyebrow">{t("report.scanEyebrow")}</p>
+      <h1 class="section__title" id="report-error-title">
+        {t("report.errorTitle")}
+      </h1>
+      <p class="field__error" role="alert">{error}</p>
+      <div class="actions">
+        <a
+          class="button button--primary"
+          href="/"
+          onclick={(event) => {
+            if (!isPlainClick(event)) return;
+            event.preventDefault();
+            navigate("/");
+          }}
+        >
+          {t("report.tryAgain")}
+        </a>
+      </div>
+    </section>
   </div>
 {:else if scan && scan.status === "failed"}
   <div class="container">

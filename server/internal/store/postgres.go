@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -199,6 +200,12 @@ type rowScanner interface {
 	Scan(dest ...any) error
 }
 
+// isInvalidUUID сообщает, что Postgres не смог разобрать id (код 22P02).
+func isInvalidUUID(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "22P02"
+}
+
 func (p *Postgres) scanBy(ctx context.Context, where string, args ...any) (Scan, error) {
 	row := p.pool.QueryRow(ctx, `
 		SELECT id::text, owner_id, url, depth, status, lang, version, COALESCE(previous_id::text, ''),
@@ -208,6 +215,11 @@ func (p *Postgres) scanBy(ctx context.Context, where string, args ...any) (Scan,
 
 	scan, err := scanRow(row)
 	if errors.Is(err, pgx.ErrNoRows) {
+		return Scan{}, ErrNotFound
+	}
+	// Кривой id (не UUID) Postgres отвергает кодом 22P02. Для клиента это
+	// просто «скана нет», а не ошибка сервера.
+	if isInvalidUUID(err) {
 		return Scan{}, ErrNotFound
 	}
 	return scan, err

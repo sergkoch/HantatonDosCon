@@ -89,7 +89,7 @@ const ru = {
     ", осмыслен ли он и совпадает ли с картинкой.",
   "home.cardPdf": "PDF",
   "home.cardPdfText":
-    "Есть ли текстовый слой, теги структуры и альтернативная версия.",
+    "Есть ли текстовый слой, теги структуры, /Alt, Title и Lang.",
   "home.cardLinks": "Ссылки",
   "home.cardLinksText": "Работают ли они и понятно ли, куда ведут.",
 
@@ -105,6 +105,7 @@ const ru = {
   "history.loading": "Загружаем историю…",
   "history.empty":
     "Проверок пока нет. Запустите первую проверку на главной.",
+  "history.emptyFilter": "По этому адресу проверок нет.",
   "history.caption": "Журнал проверок",
   "history.version": "Версия",
   "history.address": "Адрес",
@@ -137,6 +138,7 @@ const ru = {
   "history.failed": "Ошибка",
 
   "report.error": "Не удалось получить отчёт",
+  "report.errorTitle": "Не удалось открыть отчёт",
   "report.scanEyebrow": "Проверка",
   "report.running": "Проверка ещё идёт…",
   "report.failedFallback": "Проверка не удалась",
@@ -309,7 +311,7 @@ const en: Record<MessageKey, string> = {
   "home.cardImagesTail": " exists, makes sense and matches the image.",
   "home.cardPdf": "PDF",
   "home.cardPdfText":
-    "Whether there is a text layer, structure tags and an alternative version.",
+    "Whether there is a text layer, structure tags, /Alt, Title and Lang.",
   "home.cardLinks": "Links",
   "home.cardLinksText": "Whether they work and whether the destination is clear.",
 
@@ -324,6 +326,7 @@ const en: Record<MessageKey, string> = {
   "history.error": "Could not load history",
   "history.loading": "Loading history…",
   "history.empty": "No scans yet. Run your first check on the home page.",
+  "history.emptyFilter": "No scans for this address.",
   "history.caption": "Scan log",
   "history.version": "Version",
   "history.address": "Address",
@@ -356,6 +359,7 @@ const en: Record<MessageKey, string> = {
   "history.failed": "Failed",
 
   "report.error": "Could not load the report",
+  "report.errorTitle": "Could not open the report",
   "report.scanEyebrow": "Check",
   "report.running": "The check is still running…",
   "report.failedFallback": "Scan failed",
