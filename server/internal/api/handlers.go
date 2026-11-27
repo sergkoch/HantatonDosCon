@@ -332,6 +332,13 @@ func (h *handler) runScan(initial store.Scan) {
 	ruFindings = append(ruFindings, brokenRU...)
 	enFindings = append(enFindings, brokenEN...)
 
+	// Если общий таймаут истёк, часть проверок не выполнилась: помечаем скан
+	// как failed, а не сохраняем неполный результат с оценкой.
+	if ctx.Err() != nil {
+		h.fail(scan, texts.T(lang, texts.ScanTimeout))
+		return
+	}
+
 	primaryFindings, secondaryFindings := ruFindings, enFindings
 	if lang == texts.EN {
 		primaryFindings, secondaryFindings = enFindings, ruFindings

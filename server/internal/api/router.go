@@ -85,6 +85,7 @@ func NewRouter(opts Options) *gin.Engine {
 	api.DELETE("/scans", h.clearHistory)
 	api.GET("/scans/:id", h.getScan)
 	api.GET("/scans/:id/pdf", h.downloadPDF)
+	api.GET("/scans/:id/gate", h.gate)
 
 	return router
 }

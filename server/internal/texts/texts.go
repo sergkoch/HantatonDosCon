@@ -93,6 +93,7 @@ const (
 	ScanNoCrawler         Key = "scan.fail.noCrawler"
 	ScanCrawlFailed       Key = "scan.fail.crawl"
 	ScanNoPages           Key = "scan.fail.noPages"
+	ScanTimeout           Key = "scan.fail.timeout"
 	ErrURLScheme          Key = "err.urlScheme"
 	ErrURLPublic          Key = "err.urlPublic"
 	ErrDepthRange         Key = "err.depth"
@@ -102,6 +103,11 @@ const (
 	ErrStore              Key = "err.store"
 	ErrReport             Key = "err.report"
 	ErrClientID           Key = "err.clientId"
+	ErrParam              Key = "err.param"
+	ErrParamRange         Key = "err.paramRange"
+	GateScoreBelow        Key = "gate.score"
+	GateCriticalAbove     Key = "gate.critical"
+	GateNotReady          Key = "gate.notReady"
 	DocTitle              Key = "doc.title"
 	DocAuthor             Key = "doc.author"
 	PDFPage               Key = "pdf.page"
@@ -194,16 +200,22 @@ var catalog = map[Lang]map[Key]string{
 		ScanNoCrawler:   "краулер не настроен",
 		ScanCrawlFailed: "краулер завершился ошибкой",
 		ScanNoPages:     "не удалось обойти ни одной страницы: сайт недоступен, закрыт robots.txt или отдаёт контент только через JavaScript",
+		ScanTimeout:     "проверка не успела завершиться за отведённое время",
 
-		ErrURLScheme:    "адрес должен быть http или https",
-		ErrURLPublic:    "адрес должен быть публичным",
-		ErrDepthRange:   "глубина должна быть от 1 до 3",
-		ErrBodyTooLarge: "тело запроса слишком большое",
-		ErrInvalidJSON:  "не удалось разобрать запрос",
-		ErrNotFound:     "не найдено",
-		ErrStore:        "ошибка хранилища",
-		ErrReport:       "не удалось построить отчёт",
-		ErrClientID:     "нужен идентификатор браузера: обновите страницу",
+		ErrURLScheme:      "адрес должен быть http или https",
+		ErrURLPublic:      "адрес должен быть публичным",
+		ErrDepthRange:     "глубина должна быть от 1 до 3",
+		ErrBodyTooLarge:   "тело запроса слишком большое",
+		ErrInvalidJSON:    "не удалось разобрать запрос",
+		ErrNotFound:       "не найдено",
+		ErrStore:          "ошибка хранилища",
+		ErrReport:         "не удалось построить отчёт",
+		ErrClientID:       "нужен идентификатор браузера: обновите страницу",
+		ErrParam:          "параметр %s должен быть целым числом",
+		ErrParamRange:     "параметр %s вне допустимого диапазона",
+		GateScoreBelow:    "Оценка %d ниже порога %d.",
+		GateCriticalAbove: "Критических находок %d больше допустимого %d.",
+		GateNotReady:      "Проверка ещё не завершена.",
 
 		DocTitle:          "Отчёт о доступности",
 		DocAuthor:         "Доступный контент",
@@ -296,16 +308,22 @@ var catalog = map[Lang]map[Key]string{
 		ScanNoCrawler:   "crawler is not configured",
 		ScanCrawlFailed: "crawler failed",
 		ScanNoPages:     "no pages could be crawled: the site is unreachable, blocked by robots.txt or renders content only with JavaScript",
+		ScanTimeout:     "the scan did not finish within the time limit",
 
-		ErrURLScheme:    "url must be http or https",
-		ErrURLPublic:    "url must be public",
-		ErrDepthRange:   "depth must be between 1 and 3",
-		ErrBodyTooLarge: "request body too large",
-		ErrInvalidJSON:  "request could not be parsed",
-		ErrNotFound:     "not found",
-		ErrStore:        "store error",
-		ErrReport:       "report generation failed",
-		ErrClientID:     "browser identity is required: reload the page",
+		ErrURLScheme:      "url must be http or https",
+		ErrURLPublic:      "url must be public",
+		ErrDepthRange:     "depth must be between 1 and 3",
+		ErrBodyTooLarge:   "request body too large",
+		ErrInvalidJSON:    "request could not be parsed",
+		ErrNotFound:       "not found",
+		ErrStore:          "store error",
+		ErrReport:         "report generation failed",
+		ErrClientID:       "browser identity is required: reload the page",
+		ErrParam:          "parameter %s must be an integer",
+		ErrParamRange:     "parameter %s is out of range",
+		GateScoreBelow:    "Score %d is below the threshold %d.",
+		GateCriticalAbove: "Critical findings %d exceed the allowed %d.",
+		GateNotReady:      "The scan is not finished yet.",
 
 		DocTitle:          "Accessibility report",
 		DocAuthor:         "Accessible Content",

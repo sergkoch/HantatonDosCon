@@ -146,7 +146,9 @@ func (p *Postgres) List(ctx context.Context, targetURL, owner string, limit int)
 		       score, pages_count, checked_links, unverified_links, error,
 		       stats, changes, created_at
 		FROM scans
-		WHERE ($1 = '' OR url = $1) AND ($2 = '' OR owner_id = $2)
+		-- Пустой owner_id не должен видеть чужие сканы: сравниваем строго,
+		-- иначе запрос без X-Client-ID раскрывал бы историю всех клиентов.
+		WHERE ($1 = '' OR url = $1) AND owner_id = $2
 		ORDER BY created_at DESC
 		LIMIT $3`, targetURL, owner, limit)
 	if err != nil {
@@ -250,7 +252,15 @@ func (p *Postgres) findingsBy(ctx context.Context, scanID string) ([]Finding, er
 		       title_alt, recommendation_alt
 		FROM findings
 		WHERE scan_id = $1
-		ORDER BY created_at, id`, scanID)
+		ORDER BY
+			CASE severity
+				WHEN 'critical' THEN 0
+				WHEN 'warning' THEN 1
+				WHEN 'ok' THEN 2
+				ELSE 3
+			END,
+			created_at,
+			id`, scanID)
 	if err != nil {
 		return nil, err
 	}
