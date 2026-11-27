@@ -52,7 +52,8 @@
 
 - `task/review-fixes` — правки по заданию от 27.11.2026: UI-дефекты, утечка
   истории в PostgreSQL, таймаут как `failed`, аналитика, JSON, CI-гейт,
-  документация. PR открывается от `sergkoch` или `shrekichevsk`.
+  документация. PR [#95](https://github.com/sergkoch/HantatonDosCon/pull/95),
+  открыт от `sergkoch`; коммит `76d5c13`.
 
 ## Сервер
 
