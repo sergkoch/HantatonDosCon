@@ -1,35 +1,37 @@
 <script lang="ts">
   import Layout from "./components/Layout.svelte";
+  import RouteSkeleton from "./components/RouteSkeleton.svelte";
   import HomePage from "./pages/HomePage.svelte";
   import NotFoundPage from "./pages/NotFoundPage.svelte";
+  import { t } from "./lib/i18n.svelte";
   import { getPath } from "./lib/router.svelte";
+  import { loadHistory, loadReport, matchRoute } from "./lib/routes";
 
   const path = $derived(getPath());
-  const reportId = $derived(path.match(/^\/report\/([^/]+)$/)?.[1] ?? null);
-
-  const loadHistory = () =>
-    import("./pages/HistoryPage.svelte").then((module) => module.default);
-  const loadReport = () =>
-    import("./pages/ReportPage.svelte").then((module) => module.default);
+  const route = $derived(matchRoute(path));
 </script>
 
 <Layout>
-  {#if path === "/"}
+  {#if route.kind === "home"}
     <HomePage />
-  {:else if path === "/history"}
-    {#await loadHistory() then HistoryPage}
+  {:else if route.kind === "history"}
+    {#await loadHistory()}
+      <RouteSkeleton />
+    {:then HistoryPage}
       <HistoryPage />
     {:catch}
       <div class="container">
-        <p class="field__error" role="alert">Не удалось загрузить историю.</p>
+        <p class="field__error" role="alert">{t("history.error")}</p>
       </div>
     {/await}
-  {:else if reportId !== null}
-    {#await loadReport() then ReportPage}
-      <ReportPage id={reportId} />
+  {:else if route.kind === "report" && route.reportId !== null}
+    {#await loadReport()}
+      <RouteSkeleton />
+    {:then ReportPage}
+      <ReportPage id={route.reportId} />
     {:catch}
       <div class="container">
-        <p class="field__error" role="alert">Не удалось загрузить отчёт.</p>
+        <p class="field__error" role="alert">{t("report.error")}</p>
       </div>
     {/await}
   {:else}

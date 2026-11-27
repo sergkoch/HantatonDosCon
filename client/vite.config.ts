@@ -55,6 +55,10 @@ export default defineConfig({
     proxy: {
       "/api": "http://localhost:8080",
     },
+    watch: {
+      // Сборка в dist не должна ронять запущенный dev-сервер (EBUSY на Windows).
+      ignored: ["**/dist/**"],
+    },
   },
   test: {
     environment: "node",

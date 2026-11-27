@@ -108,7 +108,7 @@
     {/if}
   </section>
 
-  <section class="section" id="how" aria-labelledby="how-title">
+  <section class="section" id="how" aria-labelledby="how-title" tabindex="-1">
     <div class="how">
       <div class="how__head">
         <div>

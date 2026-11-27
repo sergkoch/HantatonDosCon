@@ -4,6 +4,10 @@ const ru = {
   "site.title": "Доступный контент",
   "site.description":
     "Проверка доступности изображений, PDF-документов и ссылок на сайтах",
+  "meta.titleHome": "Доступный контент — проверка сайта",
+  "meta.titleHistory": "История проверок — Доступный контент",
+  "meta.titleReport": "Отчёт — Доступный контент",
+  "meta.titleNotFound": "Страница не найдена — Доступный контент",
 
   "layout.skip": "К содержимому",
   "layout.navLabel": "Основная навигация",
@@ -18,6 +22,8 @@ const ru = {
   "layout.langMenu": "Выбор языка",
   "layout.footer": "Учебный проект команды. Проверка доступности контента.",
   "layout.contacts": "Контакты команды:",
+  "footer.cookieTitle": "Согласие на cookie",
+  "footer.cookieNote": "Только технические данные. Аналитики и рекламы нет.",
   "footer.nameAndrey": "Андрей",
   "footer.roleAndrey": "ведущий программист",
   "footer.nameKonstantin": "Константин",
@@ -27,7 +33,15 @@ const ru = {
 
   "cookie.label": "Использование файлов cookie",
   "cookie.text":
-    "Мы используем файлы cookie, чтобы сайт работал корректно и запоминал ваши настройки (например, выбранную тему). Продолжая работу, вы соглашаетесь с этим.",
+    "Сайт хранит только технически необходимые данные, чтобы работали тема, язык и ваша история проверок.",
+  "cookie.noAnalytics":
+    "Аналитики и рекламных трекеров нет: мы не передаём данные третьим лицам.",
+  "cookie.what": "Что хранится",
+  "cookie.close": "Закрыть",
+  "cookie.keyTheme": "светлая или тёмная тема",
+  "cookie.keyLocale": "выбранный язык интерфейса",
+  "cookie.keyClient": "идентификатор браузера для истории проверок",
+  "cookie.keyConsent": "это согласие, чтобы не спрашивать снова",
   "cookie.accept": "Принять",
 
   "error.notFound": "Скан не найден",
@@ -109,6 +123,15 @@ const ru = {
   "history.running": "Идёт проверка",
   "history.done": "Готово",
   "history.failed": "Ошибка",
+  "history.actions": "Действия",
+  "history.repeat": "Повторить",
+  "history.repeatBusy": "Запускаем…",
+  "history.repeatError": "Не удалось повторить проверку",
+  "history.summaryTitle": "Сводка по истории",
+  "history.summaryTotal": "Проверок",
+  "history.summaryAverage": "Средняя оценка",
+  "history.summaryCritical": "Критических находок",
+  "history.summaryLast": "Последняя проверка",
 
   "report.error": "Не удалось получить отчёт",
   "report.scanEyebrow": "Проверка",
@@ -152,6 +175,17 @@ const ru = {
   "report.pdfError": "Не удалось скачать PDF",
   "report.scanningTitle": "Проверяем сайт…",
   "report.scanningStatus": "Собираем страницы, ссылки и медиа…",
+  "report.repeat": "Проверить снова",
+  "report.repeatBusy": "Запускаем…",
+  "report.repeatError": "Не удалось запустить повторную проверку",
+  "report.insightsKinds": "Проблемы по типам контента",
+  "report.insightsWcag": "Проблемы по критериям WCAG",
+  "report.downloadJson": "Скачать JSON",
+  "report.jsonError": "Не удалось скачать JSON",
+  "report.gateTitle": "CI-гейт",
+  "report.gateText":
+    "Проверку можно встроить в пайплайн: команда завершится с ошибкой, если оценка ниже порога или критических находок больше допустимого.",
+  "report.gateExample": "Пример",
 
   "csv.severity": "Критичность",
   "csv.kind": "Тип",
@@ -187,6 +221,10 @@ const en: Record<MessageKey, string> = {
   "site.title": "Accessible Content",
   "site.description":
     "Accessibility checks for images, PDF documents and links on websites",
+  "meta.titleHome": "Accessible Content — site check",
+  "meta.titleHistory": "Scan history — Accessible Content",
+  "meta.titleReport": "Report — Accessible Content",
+  "meta.titleNotFound": "Page not found — Accessible Content",
 
   "layout.skip": "Skip to content",
   "layout.navLabel": "Main navigation",
@@ -201,6 +239,8 @@ const en: Record<MessageKey, string> = {
   "layout.langMenu": "Language selection",
   "layout.footer": "Team training project. Content accessibility check.",
   "layout.contacts": "Team contacts:",
+  "footer.cookieTitle": "Cookie consent",
+  "footer.cookieNote": "Technical data only. No analytics or ads.",
   "footer.nameAndrey": "Andrey",
   "footer.roleAndrey": "lead programmer",
   "footer.nameKonstantin": "Konstantin",
@@ -210,7 +250,15 @@ const en: Record<MessageKey, string> = {
 
   "cookie.label": "Cookie usage",
   "cookie.text":
-    "We use cookies so the site works correctly and remembers your settings (for example, the chosen theme). By continuing to use the site you agree to this.",
+    "The site stores only technically necessary data so the theme, language and your scan history keep working.",
+  "cookie.noAnalytics":
+    "There are no analytics or ad trackers: we do not share data with third parties.",
+  "cookie.what": "What is stored",
+  "cookie.close": "Close",
+  "cookie.keyTheme": "light or dark theme",
+  "cookie.keyLocale": "the chosen interface language",
+  "cookie.keyClient": "browser identifier used for scan history",
+  "cookie.keyConsent": "this consent, so we do not ask again",
   "cookie.accept": "Accept",
 
   "error.notFound": "Scan not found",
@@ -290,6 +338,15 @@ const en: Record<MessageKey, string> = {
   "history.running": "Running",
   "history.done": "Done",
   "history.failed": "Failed",
+  "history.actions": "Actions",
+  "history.repeat": "Repeat",
+  "history.repeatBusy": "Starting…",
+  "history.repeatError": "Could not repeat the check",
+  "history.summaryTitle": "History summary",
+  "history.summaryTotal": "Scans",
+  "history.summaryAverage": "Average score",
+  "history.summaryCritical": "Critical findings",
+  "history.summaryLast": "Last scan",
 
   "report.error": "Could not load the report",
   "report.scanEyebrow": "Check",
@@ -332,6 +389,17 @@ const en: Record<MessageKey, string> = {
   "report.pdfError": "Could not download the PDF",
   "report.scanningTitle": "Checking the site…",
   "report.scanningStatus": "Collecting pages, links and media…",
+  "report.repeat": "Check again",
+  "report.repeatBusy": "Starting…",
+  "report.repeatError": "Could not start the check",
+  "report.insightsKinds": "Problems by content type",
+  "report.insightsWcag": "Problems by WCAG criterion",
+  "report.downloadJson": "Download JSON",
+  "report.jsonError": "Could not download the JSON",
+  "report.gateTitle": "CI gate",
+  "report.gateText":
+    "Use the scan in a pipeline: the command fails when the score is below the threshold or too many critical findings remain.",
+  "report.gateExample": "Example",
 
   "csv.severity": "Severity",
   "csv.kind": "Type",

@@ -1,23 +1,19 @@
 let path = $state(window.location.pathname);
 
-function titleFor(next: string): string {
-  if (next === "/") return "Доступный контент — проверка сайта";
-  if (next === "/history") return "История проверок — Доступный контент";
-  if (next.startsWith("/scan/")) return "Проверка идёт — Доступный контент";
-  if (next.startsWith("/report/")) return "Отчёт — Доступный контент";
-  return "Страница не найдена — Доступный контент";
-}
-
 function applyPath(next: string): void {
   path = next;
-  document.title = titleFor(next);
   window.scrollTo({ top: 0, behavior: "auto" });
   requestAnimationFrame(() => {
-    document.getElementById("main")?.focus();
+    document.getElementById("main")?.focus({ preventScroll: true });
   });
 }
 
 export function navigate(to: string): void {
+  const current = window.location.pathname + window.location.search;
+  if (current === to) {
+    return;
+  }
+
   window.history.pushState(null, "", to);
   applyPath(to);
 }

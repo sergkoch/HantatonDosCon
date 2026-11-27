@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { getScan, getScanPdf } from "../api";
+  import { createScan, getScan, getScanPdf } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
   import { isPlainClick, navigate } from "../lib/router.svelte";
   import { getLocale, t } from "../lib/i18n.svelte";
+  import { kindBreakdown, wcagBreakdown } from "../lib/insights";
   import { type Locale, type MessageKey, translate } from "../lib/messages";
   import { kindLabel, scoreLabel } from "../lib/score";
-  import type { Scan, Severity } from "../types";
+  import type { FindingKind, Scan, Severity } from "../types";
 
   let { id }: { id: string } = $props();
 
@@ -126,11 +127,68 @@
       .sort((a, b) => severityRank[a.severity] - severityRank[b.severity]),
   );
 
+  let repeatBusy = $state(false);
+  let repeatError = $state("");
+  let jsonError = $state("");
+
+  const origin = window.location.origin;
+
+  const kinds = $derived(kindBreakdown(scan?.findings ?? []));
+  const wcag = $derived(wcagBreakdown(scan?.findings ?? []));
+
   const findings = $derived(
     filter === "all"
       ? problems
       : problems.filter((finding) => finding.severity === filter),
   );
+
+  async function repeatScan(current: Scan) {
+    if (repeatBusy) return;
+
+    repeatBusy = true;
+    repeatError = "";
+
+    try {
+      const next = await createScan(current.url, current.depth);
+      navigate(`/report/${next.id}`);
+    } catch (cause) {
+      repeatError =
+        cause instanceof Error ? cause.message : t("report.repeatError");
+    } finally {
+      repeatBusy = false;
+    }
+  }
+
+  function downloadJson(current: Scan) {
+    jsonError = "";
+
+    try {
+      const payload = {
+        schemaVersion: 1,
+        generator: "accessible-content",
+        exportedAt: new Date().toISOString(),
+        scan: current,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `report-${current.id}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      jsonError = t("report.jsonError");
+    }
+  }
+
+  function gateExample(scanId: string): string {
+    return `curl --fail --silent --show-error \\
+  "${origin}/api/scans/${scanId}/gate?min_score=80&max_critical=0" \\
+  -H "X-Client-ID: $ACCESSIBLE_CLIENT_ID"`;
+  }
 
   function safeCell(value: string): string {
     const text = value ?? "";
@@ -390,6 +448,52 @@
         </section>
       {/if}
 
+      {#if problems.length > 0}
+        <div class="insights">
+          <section class="insights__block" aria-labelledby="insights-kinds">
+            <h2 class="insights__title" id="insights-kinds">
+              {t("report.insightsKinds")}
+            </h2>
+            <ul class="insights__list">
+              {#each kinds as row (row.key)}
+                <li class="insights__row">
+                  <span class="insights__label"
+                    >{kindLabel(row.key as FindingKind, getLocale())}</span
+                  >
+                  <span class="insights__track" aria-hidden="true">
+                    <span
+                      class="insights__fill"
+                      style={`width: ${row.percent}%`}
+                    ></span>
+                  </span>
+                  <span class="insights__count">{row.count}</span>
+                </li>
+              {/each}
+            </ul>
+          </section>
+
+          <section class="insights__block" aria-labelledby="insights-wcag">
+            <h2 class="insights__title" id="insights-wcag">
+              {t("report.insightsWcag")}
+            </h2>
+            <ul class="insights__list">
+              {#each wcag as row (row.key)}
+                <li class="insights__row">
+                  <span class="insights__label">WCAG {row.key}</span>
+                  <span class="insights__track" aria-hidden="true">
+                    <span
+                      class="insights__fill"
+                      style={`width: ${row.percent}%`}
+                    ></span>
+                  </span>
+                  <span class="insights__count">{row.count}</span>
+                </li>
+              {/each}
+            </ul>
+          </section>
+        </div>
+      {/if}
+
       <fieldset class="filters">
         <legend class="visually-hidden">{t("report.filterLegend")}</legend>
         {#each filters as item (item.value)}
@@ -442,6 +546,14 @@
       {/if}
 
       <div class="actions">
+        <Button
+          type="button"
+          disabled={repeatBusy}
+          onclick={() => repeatScan(current)}
+        >
+          {repeatBusy ? t("report.repeatBusy") : t("report.repeat")}
+        </Button>
+
         <Button type="button" onclick={() => downloadCsv(current)}>
           {t("report.downloadCsv")}
         </Button>
@@ -449,7 +561,26 @@
         <Button type="button" onclick={() => downloadPdf(current)}>
           {t("report.downloadPdf")}
         </Button>
+
+        <Button type="button" onclick={() => downloadJson(current)}>
+          {t("report.downloadJson")}
+        </Button>
       </div>
+
+      {#if repeatError}
+        <p class="field__error" role="alert">{repeatError}</p>
+      {/if}
+
+      {#if jsonError}
+        <p class="field__error" role="alert">{jsonError}</p>
+      {/if}
+
+      <details class="gate">
+        <summary class="gate__summary">{t("report.gateTitle")}</summary>
+        <p class="gate__text">{t("report.gateText")}</p>
+        <p class="gate__example">{t("report.gateExample")}</p>
+        <pre class="gate__code"><code>{gateExample(current.id)}</code></pre>
+      </details>
 
       {#if pdfError}
         <p class="field__error" role="alert">{pdfError}</p>

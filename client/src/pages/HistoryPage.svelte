@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { clearHistory, listScans } from "../api";
+  import { clearHistory, createScan, listScans } from "../api";
   import { isPlainClick, navigate } from "../lib/router.svelte";
   import { getLocale, t } from "../lib/i18n.svelte";
+  import { summarizeScans } from "../lib/insights";
   import type { Scan } from "../types";
 
   let scans = $state<Scan[]>([]);
@@ -27,6 +28,32 @@
     } finally {
       clearing = false;
     }
+  }
+
+  let repeatId = $state<string | null>(null);
+  let repeatError = $state("");
+
+  const summary = $derived(summarizeScans(scans));
+
+  async function repeatScan(scan: Scan) {
+    if (repeatId !== null) return;
+
+    repeatId = scan.id;
+    repeatError = "";
+
+    try {
+      const next = await createScan(scan.url, scan.depth);
+      navigate(`/report/${next.id}`);
+    } catch (cause) {
+      repeatError =
+        cause instanceof Error ? cause.message : t("history.repeatError");
+    } finally {
+      repeatId = null;
+    }
+  }
+
+  function summaryDate(raw: string | null): string {
+    return raw === null ? "—" : formatDate(raw);
   }
 
   async function load(url = "") {
@@ -140,6 +167,30 @@
     {:else if scans.length === 0}
       <p class="empty">{t("history.empty")}</p>
     {:else}
+      <section class="history-summary" aria-labelledby="history-summary-title">
+        <h2 class="history-summary__title" id="history-summary-title">
+          {t("history.summaryTitle")}
+        </h2>
+        <dl class="history-summary__grid">
+          <div class="history-summary__item">
+            <dt>{t("history.summaryTotal")}</dt>
+            <dd>{summary.total}</dd>
+          </div>
+          <div class="history-summary__item">
+            <dt>{t("history.summaryAverage")}</dt>
+            <dd>{summary.average ?? "—"}</dd>
+          </div>
+          <div class="history-summary__item">
+            <dt>{t("history.summaryCritical")}</dt>
+            <dd>{summary.critical}</dd>
+          </div>
+          <div class="history-summary__item">
+            <dt>{t("history.summaryLast")}</dt>
+            <dd>{summaryDate(summary.lastAt)}</dd>
+          </div>
+        </dl>
+      </section>
+
       <div class="table-wrap">
         <table class="table">
           <caption class="visually-hidden">{t("history.caption")}</caption>
@@ -151,7 +202,7 @@
               <th scope="col">{t("history.status")}</th>
               <th scope="col">{t("history.findings")}</th>
               <th scope="col">{t("history.score")}</th>
-              <th scope="col">{t("history.report")}</th>
+              <th scope="col">{t("history.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -170,7 +221,7 @@
                   </span>
                 </td>
                 <td>{scan.score ?? "—"}</td>
-                <td>
+                <td class="row-actions">
                   <a
                     href={`/report/${scan.id}`}
                     onclick={(event) => {
@@ -181,12 +232,26 @@
                   >
                     {t("history.open")}
                   </a>
+                  <button
+                    class="link-button"
+                    type="button"
+                    disabled={repeatId !== null}
+                    onclick={() => repeatScan(scan)}
+                  >
+                    {repeatId === scan.id
+                      ? t("history.repeatBusy")
+                      : t("history.repeat")}
+                  </button>
                 </td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
+    {/if}
+
+    {#if repeatError}
+      <p class="field__error" role="alert">{repeatError}</p>
     {/if}
 
     {#if cleared > 0}
