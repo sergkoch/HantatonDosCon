@@ -164,6 +164,7 @@
 
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -1639,27 +1640,378 @@ a:hover {
   color: var(--text);
 }
 
+.site-footer__contact-details a {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.site-footer__contact-details a:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.site-footer__team {
+  min-width: 0;
+}
+
+.site-footer__consent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  text-align: right;
+}
+
+.site-footer__consent-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 /* Баннер согласия на куки */
 .cookie-consent {
   position: fixed;
-  inset-inline: 0;
-  bottom: 0;
+  left: 50%;
+  bottom: var(--space-4);
+  transform: translateX(-50%);
   z-index: 60;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3) var(--space-4);
-  padding: var(--space-3) clamp(16px, 4vw, 40px);
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(420px, calc(100vw - 32px));
+  padding: var(--space-4);
   color: var(--text);
   background: var(--surface-solid);
-  border-top: 1px solid var(--border-strong);
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.cookie-consent__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cookie-consent__title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.cookie-consent__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cookie-consent__close:hover {
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .cookie-consent__text {
   margin: 0;
-  max-width: 80ch;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.cookie-consent__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 0;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.cookie-consent__chevron {
+  transition: transform 0.15s ease;
+}
+
+.cookie-consent__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.cookie-consent__details {
+  padding: var(--space-3);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.cookie-consent__keys-title {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cookie-consent__keys {
+  margin: 0 0 var(--space-2);
+  padding-left: 1.1em;
+  color: var(--muted);
+}
+
+.cookie-consent__note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.cookie-consent__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---------- Заглушка ленивого маршрута ---------- */
+
+.route-skeleton {
+  min-height: calc(100vh - 220px);
+  padding-top: var(--space-6);
+}
+
+.route-skeleton__head,
+.route-skeleton__line,
+.route-skeleton__row {
+  background: linear-gradient(
+    90deg,
+    var(--surface),
+    var(--surface-2),
+    var(--surface)
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: route-skeleton 1.2s ease-in-out infinite;
+}
+
+.route-skeleton__head {
+  width: min(420px, 70%);
+  height: 48px;
+  margin-bottom: var(--space-4);
+}
+
+.route-skeleton__line {
+  width: min(620px, 90%);
+  height: 20px;
+  margin-bottom: var(--space-5);
+}
+
+.route-skeleton__row {
+  height: 56px;
+  margin-top: var(--space-3);
+}
+
+@keyframes route-skeleton {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---------- Аналитика отчёта ---------- */
+
+.insights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.insight {
+  padding: var(--space-5);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.insight__title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.insight__note {
+  margin: 4px 0 var(--space-4);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.bars {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: minmax(90px, 34%) 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+}
+
+.bar__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bar__track {
+  height: 8px;
+  overflow: hidden;
+  background: var(--track);
+  border-radius: var(--radius-pill);
+}
+
+.bar__fill {
+  display: block;
+  min-width: 2px;
+  height: 100%;
+  background: var(--accent-grad);
+  border-radius: inherit;
+}
+
+.bar__value {
+  color: var(--text-strong);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- CI-гейт ---------- */
+
+.gate {
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.gate__summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gate__body {
+  padding-top: var(--space-3);
+  color: var(--muted);
+}
+
+.gate__body p {
+  margin: 0 0 var(--space-2);
+}
+
+.gate__hint {
+  font-size: 0.875rem;
+}
+
+.gate__label {
+  margin-top: var(--space-3) !important;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.gate__code {
+  margin: 0;
+  padding: var(--space-3);
+  overflow-x: auto;
+  color: var(--code-text);
+  background: var(--input-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Действия в строке истории */
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.button--small {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+.summary__value--date {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+#how:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 6px;
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 900px) {
+  .insights {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .cookie-consent {
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-3);
+    width: auto;
+    transform: none;
+  }
+
+  .site-footer__inner {
+    flex-direction: column;
+  }
+
+  .site-footer__consent {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-skeleton__head,
+  .route-skeleton__line,
+  .route-skeleton__row {
+    animation: none;
+    background: var(--surface);
+  }
+
+  .cookie-consent__chevron {
+    transition: none;
+  }
 }

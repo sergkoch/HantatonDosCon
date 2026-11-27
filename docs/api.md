@@ -176,6 +176,50 @@
 
 Ответ: `application/pdf`, файл `report-{id}.pdf`.
 
+## GET /api/scans/{id}/gate
+
+CI-гейт для пайплайна. Возвращает `200`, если скан проходит пороги, и `409`,
+если нет: `curl --fail` в таком случае завершится с ненулевым кодом.
+
+Параметры:
+
+- `min_score` — минимальная оценка, `0..100`, по умолчанию `0`;
+- `max_critical` — допустимое число критичных находок, `>= 0`,
+  по умолчанию `0`.
+
+```bash
+curl --fail --silent --show-error \
+  "https://not-domain.ru/api/scans/<id>/gate?min_score=80&max_critical=0" \
+  -H "X-Client-ID: $ACCESSIBLE_CLIENT_ID"
+```
+
+Ответ:
+
+```json
+{
+  "id": "0f7f0f2e-6a0b-4a3e-9f4e-7d1b2c3d4e5f",
+  "url": "https://example.ru",
+  "status": "done",
+  "passed": false,
+  "score": 42,
+  "critical": 2,
+  "warning": 1,
+  "limits": { "minScore": 80, "maxCritical": 0 },
+  "reasons": [
+    "оценка 42 ниже порога 80",
+    "критичных находок 2 больше допустимого 0"
+  ]
+}
+```
+
+Коды:
+
+- `200` — гейт пройден;
+- `409` — гейт не пройден; для `queued`/`running` — `error: "not_ready"`,
+  для `failed` — `error: "failed"`;
+- `400` — неверный `min_score` или `max_critical`;
+- `404` — скан не найден или принадлежит другому `X-Client-ID`.
+
 ## GET /api/scans
 
 Журнал проверок, новые сверху. Возвращает только сканы текущего
@@ -234,6 +278,7 @@ curl -X DELETE https://not-domain.ru/api/scans \
 
 - `400` — неверный запрос, приватный или неразрешимый адрес;
 - `404` — скан не найден;
+- `409` — CI-гейт не пройден или скан ещё не завершён;
 - `413` — тело запроса больше 1 МиБ;
 - `429` — слишком много запросов;
 - `500` — внутренняя ошибка.

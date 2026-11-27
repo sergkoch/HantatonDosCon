@@ -5,6 +5,12 @@ const ru = {
   "site.description":
     "Проверка доступности изображений, PDF-документов и ссылок на сайтах",
 
+  "meta.titleHome": "Доступный контент — проверка сайта",
+  "meta.titleHistory": "История проверок — Доступный контент",
+  "meta.titleReport": "Отчёт — Доступный контент",
+  "meta.titleNotFound": "Страница не найдена — Доступный контент",
+  "route.loading": "Загружаем…",
+
   "layout.skip": "К содержимому",
   "layout.navLabel": "Основная навигация",
   "layout.navCheck": "Проверить",
@@ -26,9 +32,23 @@ const ru = {
   "footer.roleSergey": "презентатор и программист",
 
   "cookie.label": "Использование файлов cookie",
+  "cookie.title": "Cookies и локальное хранилище",
   "cookie.text":
-    "Мы используем файлы cookie, чтобы сайт работал корректно и запоминал ваши настройки (например, выбранную тему). Продолжая работу, вы соглашаетесь с этим.",
+    "Сайт хранит только технические данные: тему, язык, случайный ID браузера для истории проверок и отметку о согласии.",
+  "cookie.more": "Что хранится",
+  "cookie.hide": "Скрыть",
+  "cookie.keysTitle": "Реальные ключи в localStorage:",
+  "cookie.keyTheme": "theme — светлая или тёмная тема",
+  "cookie.keyLocale": "locale — выбранный язык",
+  "cookie.keyClient":
+    "ac.client-id — случайный идентификатор браузера для истории",
+  "cookie.keyConsent": "cookie-consent — отметка о согласии",
+  "cookie.noTracking":
+    "Аналитики, рекламных трекеров и передачи данных третьим лицам нет.",
   "cookie.accept": "Принять",
+  "cookie.close": "Закрыть уведомление",
+  "cookie.footerButton": "Согласие на cookie",
+  "cookie.footerNote": "Можно открыть и прочитать снова.",
 
   "error.notFound": "Скан не найден",
   "error.invalidInput": "Проверьте адрес и глубину",
@@ -95,6 +115,13 @@ const ru = {
   "history.score": "Оценка",
   "history.report": "Отчёт",
   "history.open": "Открыть",
+  "history.repeat": "Повторить",
+  "history.repeating": "Запускаем…",
+  "history.repeatError": "Не удалось запустить повторную проверку",
+  "history.summaryTotal": "Проверок",
+  "history.summaryAverage": "Средняя оценка",
+  "history.summaryCritical": "Критичных находок",
+  "history.summaryLast": "Последняя проверка",
   "history.newCheck": "Новая проверка",
   "history.clear": "Очистить историю",
   "history.clearConfirm":
@@ -149,7 +176,20 @@ const ru = {
   "report.emptyFilter": "По этому фильтру находок нет.",
   "report.downloadCsv": "Скачать CSV",
   "report.downloadPdf": "Скачать PDF",
+  "report.downloadJson": "Скачать JSON",
   "report.pdfError": "Не удалось скачать PDF",
+  "report.rescan": "Проверить снова",
+  "report.rescanning": "Запускаем…",
+  "report.rescanError": "Не удалось запустить повторную проверку",
+  "report.gateTitle": "CI-гейт",
+  "report.gateText":
+    "Встройте проверку в пайплайн: код 200 — гейт пройден, 409 — есть проблемы.",
+  "report.gateCurl": "Пример запроса:",
+  "report.gateHint":
+    "Порог оценки 80 и ноль критичных находок. Замените значения под свой проект.",
+  "insights.kindsTitle": "Проблемы по типам контента",
+  "insights.wcagTitle": "Проблемы по критериям WCAG",
+  "insights.note": "Считаются только критичные находки и предупреждения.",
   "report.scanningTitle": "Проверяем сайт…",
   "report.scanningStatus": "Собираем страницы, ссылки и медиа…",
 
@@ -188,6 +228,12 @@ const en: Record<MessageKey, string> = {
   "site.description":
     "Accessibility checks for images, PDF documents and links on websites",
 
+  "meta.titleHome": "Accessible Content — site check",
+  "meta.titleHistory": "Scan history — Accessible Content",
+  "meta.titleReport": "Report — Accessible Content",
+  "meta.titleNotFound": "Page not found — Accessible Content",
+  "route.loading": "Loading…",
+
   "layout.skip": "Skip to content",
   "layout.navLabel": "Main navigation",
   "layout.navCheck": "Check",
@@ -209,9 +255,22 @@ const en: Record<MessageKey, string> = {
   "footer.roleSergey": "presenter and programmer",
 
   "cookie.label": "Cookie usage",
+  "cookie.title": "Cookies and local storage",
   "cookie.text":
-    "We use cookies so the site works correctly and remembers your settings (for example, the chosen theme). By continuing to use the site you agree to this.",
+    "The site stores only technical data: theme, language, a random browser ID for scan history and the consent flag.",
+  "cookie.more": "What is stored",
+  "cookie.hide": "Hide",
+  "cookie.keysTitle": "Actual localStorage keys:",
+  "cookie.keyTheme": "theme — light or dark theme",
+  "cookie.keyLocale": "locale — selected language",
+  "cookie.keyClient": "ac.client-id — random browser ID for history",
+  "cookie.keyConsent": "cookie-consent — consent flag",
+  "cookie.noTracking":
+    "There is no analytics, no ad trackers and no data sharing with third parties.",
   "cookie.accept": "Accept",
+  "cookie.close": "Close notification",
+  "cookie.footerButton": "Cookie consent",
+  "cookie.footerNote": "Open it again to read what is stored.",
 
   "error.notFound": "Scan not found",
   "error.invalidInput": "Check the address and depth",
@@ -276,6 +335,13 @@ const en: Record<MessageKey, string> = {
   "history.score": "Score",
   "history.report": "Report",
   "history.open": "Open",
+  "history.repeat": "Run again",
+  "history.repeating": "Starting…",
+  "history.repeatError": "Could not start a new scan",
+  "history.summaryTotal": "Scans",
+  "history.summaryAverage": "Average score",
+  "history.summaryCritical": "Critical findings",
+  "history.summaryLast": "Latest scan",
   "history.newCheck": "New check",
   "history.clear": "Clear history",
   "history.clearConfirm":
@@ -329,7 +395,20 @@ const en: Record<MessageKey, string> = {
   "report.emptyFilter": "No findings for this filter.",
   "report.downloadCsv": "Download CSV",
   "report.downloadPdf": "Download PDF",
+  "report.downloadJson": "Download JSON",
   "report.pdfError": "Could not download the PDF",
+  "report.rescan": "Check again",
+  "report.rescanning": "Starting…",
+  "report.rescanError": "Could not start a new scan",
+  "report.gateTitle": "CI gate",
+  "report.gateText":
+    "Use the check in a pipeline: status 200 means the gate passed, 409 means problems were found.",
+  "report.gateCurl": "Example request:",
+  "report.gateHint":
+    "The example requires a score of at least 80 and zero critical findings. Adjust the values for your project.",
+  "insights.kindsTitle": "Problems by content type",
+  "insights.wcagTitle": "Problems by WCAG criterion",
+  "insights.note": "Only critical findings and warnings are counted.",
   "report.scanningTitle": "Checking the site…",
   "report.scanningStatus": "Collecting pages, links and media…",
 

@@ -1,25 +1,31 @@
 let path = $state(window.location.pathname);
 
-function titleFor(next: string): string {
-  if (next === "/") return "Доступный контент — проверка сайта";
-  if (next === "/history") return "История проверок — Доступный контент";
-  if (next.startsWith("/scan/")) return "Проверка идёт — Доступный контент";
-  if (next.startsWith("/report/")) return "Отчёт — Доступный контент";
-  return "Страница не найдена — Доступный контент";
-}
-
 function applyPath(next: string): void {
+  const changed = path !== next;
   path = next;
-  document.title = titleFor(next);
-  window.scrollTo({ top: 0, behavior: "auto" });
+
+  if (changed) {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  // preventScroll важен: иначе фокус на main прокручивает страницу второй раз.
   requestAnimationFrame(() => {
-    document.getElementById("main")?.focus();
+    document.getElementById("main")?.focus({ preventScroll: true });
   });
 }
 
 export function navigate(to: string): void {
-  window.history.pushState(null, "", to);
-  applyPath(to);
+  const url = new URL(to, window.location.origin);
+  const target = url.pathname + url.search;
+  const current = window.location.pathname + window.location.search;
+
+  // Повторный клик по текущему пункту меню не должен сбрасывать прокрутку.
+  if (target === current) {
+    return;
+  }
+
+  window.history.pushState(null, "", target + url.hash);
+  applyPath(url.pathname);
 }
 
 export function getPath(): string {

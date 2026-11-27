@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { getScan, getScanPdf } from "../api";
+  import { createScan, getScan, getScanPdf } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
   import { isPlainClick, navigate } from "../lib/router.svelte";
   import { getLocale, t } from "../lib/i18n.svelte";
+  import { clientID } from "../lib/clientId";
+  import { kindBreakdown, wcagBreakdown } from "../lib/insights";
   import { type Locale, type MessageKey, translate } from "../lib/messages";
   import { kindLabel, scoreLabel } from "../lib/score";
   import type { Scan, Severity } from "../types";
@@ -15,6 +17,8 @@
   let pdfError = $state("");
   let filter = $state<"all" | Severity>("all");
   let displayScore = $state(0);
+  let rerunning = $state(false);
+  let rerunError = $state("");
 
   const circumference = 2 * Math.PI * 68;
 
@@ -28,6 +32,7 @@
     scan = null;
     error = "";
     displayScore = 0;
+    rerunError = "";
 
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -132,6 +137,9 @@
       : problems.filter((finding) => finding.severity === filter),
   );
 
+  const kinds = $derived(kindBreakdown(scan?.findings ?? []));
+  const wcag = $derived(wcagBreakdown(scan?.findings ?? []));
+
   function safeCell(value: string): string {
     const text = value ?? "";
     return /^[=+\-@]/.test(text) ? `'${text}` : text;
@@ -162,8 +170,7 @@
     }
   }
 
-  function downloadCsv(current: Scan) {
-    // Файл должен быть на одном языке: берём язык, на котором шёл скан.
+  function downloadCsv(current: Scan) {    // Файл должен быть на одном языке: берём язык, на котором шёл скан.
     const locale: Locale =
       current.lang === "en" || current.lang === "ru"
         ? current.lang
@@ -207,6 +214,56 @@
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+
+  function downloadJson(current: Scan) {
+    const payload = {
+      schemaVersion: 1,
+      generator: "accessible-content",
+      exportedAt: new Date().toISOString(),
+      scan: current,
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `report-${current.id}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+
+  async function rescan(current: Scan) {
+    if (rerunning) return;
+
+    rerunning = true;
+    rerunError = "";
+
+    try {
+      const next = await createScan(current.url, current.depth);
+      navigate(`/report/${next.id}`);
+    } catch (cause) {
+      rerunError =
+        cause instanceof Error ? cause.message : t("report.rescanError");
+    } finally {
+      rerunning = false;
+    }
+  }
+
+  function gateExample(scanID: string): string {
+    const origin =
+      typeof window === "undefined" ? "" : window.location.origin;
+
+    return [
+      "curl --fail --silent --show-error \\",
+      `  "${origin}/api/scans/${scanID}/gate?min_score=80&max_critical=0" \\`,
+      `  -H "X-Client-ID: ${clientID()}"`,
+    ].join("\n");
   }
 </script>
 
@@ -332,6 +389,8 @@
       </div>
 
       {#if current.changes}
+        {@const added = current.changes.added ?? []}
+        {@const fixed = current.changes.fixed ?? []}
         <section class="section" aria-labelledby="changes-title">
           <h2 class="section__title" id="changes-title">
             {t("report.changesTitle")}
@@ -339,12 +398,12 @@
 
           <div class="report-head__stats">
             <span
-              class={`badge ${current.changes.added.length > 0 ? "badge--critical" : ""}`.trim()}
+              class={`badge ${added.length > 0 ? "badge--critical" : ""}`.trim()}
             >
-              {t("report.added", { count: current.changes.added.length })}
+              {t("report.added", { count: added.length })}
             </span>
             <span class="badge">
-              {t("report.fixed", { count: current.changes.fixed.length })}
+              {t("report.fixed", { count: fixed.length })}
             </span>
             <span class="badge">
               {t("report.remaining", { count: current.changes.remaining })}
@@ -358,10 +417,10 @@
             {/if}
           </div>
 
-          {#if current.changes.added.length > 0}
+          {#if added.length > 0}
             <h3>{t("report.newProblems")}</h3>
             <ul class="links">
-              {#each current.changes.added as finding (finding.id)}
+              {#each added as finding (finding.id)}
                 <li>
                   <Badge severity={finding.severity} />
                   {finding.title}
@@ -370,10 +429,10 @@
             </ul>
           {/if}
 
-          {#if current.changes.fixed.length > 0}
+          {#if fixed.length > 0}
             <h3>{t("report.fixedHeading")}</h3>
             <ul class="links">
-              {#each current.changes.fixed as finding (finding.id)}
+              {#each fixed as finding (finding.id)}
                 <li>
                   <Badge severity={finding.severity} />
                   {finding.title}
@@ -382,12 +441,58 @@
             </ul>
           {/if}
 
-          {#if current.changes.added.length === 0 && current.changes.fixed.length === 0}
+          {#if added.length === 0 && fixed.length === 0}
             <p class="status">
               {t("report.noChanges")}
             </p>
           {/if}
         </section>
+      {/if}
+
+      {#if problems.length > 0}
+        <div class="insights">
+          <section class="insight" aria-labelledby="insights-kinds-title">
+            <h2 class="insight__title" id="insights-kinds-title">
+              {t("insights.kindsTitle")}
+            </h2>
+            <p class="insight__note">{t("insights.note")}</p>
+            <ul class="bars">
+              {#each kinds as row (row.key)}
+                <li class="bar">
+                  <span class="bar__label">{kindLabel(row.key, getLocale())}</span>
+                  <span class="bar__track" aria-hidden="true">
+                    <span
+                      class="bar__fill"
+                      style={`width: ${row.percent}%`}
+                    ></span>
+                  </span>
+                  <span class="bar__value">{row.count}</span>
+                </li>
+              {/each}
+            </ul>
+          </section>
+
+          <section class="insight" aria-labelledby="insights-wcag-title">
+            <h2 class="insight__title" id="insights-wcag-title">
+              {t("insights.wcagTitle")}
+            </h2>
+            <p class="insight__note">{t("insights.note")}</p>
+            <ul class="bars">
+              {#each wcag as row (row.key)}
+                <li class="bar">
+                  <span class="bar__label">WCAG {row.key}</span>
+                  <span class="bar__track" aria-hidden="true">
+                    <span
+                      class="bar__fill"
+                      style={`width: ${row.percent}%`}
+                    ></span>
+                  </span>
+                  <span class="bar__value">{row.count}</span>
+                </li>
+              {/each}
+            </ul>
+          </section>
+        </div>
       {/if}
 
       <fieldset class="filters">
@@ -442,6 +547,14 @@
       {/if}
 
       <div class="actions">
+        <Button
+          type="button"
+          disabled={rerunning}
+          onclick={() => void rescan(current)}
+        >
+          {rerunning ? t("report.rescanning") : t("report.rescan")}
+        </Button>
+
         <Button type="button" onclick={() => downloadCsv(current)}>
           {t("report.downloadCsv")}
         </Button>
@@ -449,7 +562,25 @@
         <Button type="button" onclick={() => downloadPdf(current)}>
           {t("report.downloadPdf")}
         </Button>
+
+        <Button type="button" onclick={() => downloadJson(current)}>
+          {t("report.downloadJson")}
+        </Button>
       </div>
+
+      <details class="gate">
+        <summary class="gate__summary">{t("report.gateTitle")}</summary>
+        <div class="gate__body">
+          <p>{t("report.gateText")}</p>
+          <p class="gate__hint">{t("report.gateHint")}</p>
+          <p class="gate__label">{t("report.gateCurl")}</p>
+          <pre class="gate__code"><code>{gateExample(current.id)}</code></pre>
+        </div>
+      </details>
+
+      {#if rerunError}
+        <p class="field__error" role="alert">{rerunError}</p>
+      {/if}
 
       {#if pdfError}
         <p class="field__error" role="alert">{pdfError}</p>

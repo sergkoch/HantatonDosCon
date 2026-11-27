@@ -363,7 +363,14 @@ func (h *handler) runScan(initial store.Scan) {
 	}
 
 	// Результат сохраняем отдельным коротким контекстом: скан мог израсходовать
-	// основной таймаут на обход и проверки.
+	// основной таймаут на обход и проверки. Если контекст уже истёк, часть
+	// проверок не выполнялась — такой скан нельзя сохранять как успешный.
+	if err := ctx.Err(); err != nil {
+		h.log.Warn("scan timed out", "id", scan.ID, "error", err)
+		h.fail(scan, texts.T(lang, texts.ScanTimeout))
+		return
+	}
+
 	saveCtx, saveCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer saveCancel()
 

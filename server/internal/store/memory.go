@@ -147,14 +147,26 @@ func (m *Memory) DeleteByOwner(_ context.Context, owner string) (int, error) {
 }
 
 func cloneScan(scan Scan) Scan {
-	scan.Findings = append([]Finding(nil), scan.Findings...)
+	scan.Findings = cloneFindings(scan.Findings)
 
 	if scan.Changes != nil {
 		changes := *scan.Changes
-		changes.Added = append([]Finding(nil), scan.Changes.Added...)
-		changes.Fixed = append([]Finding(nil), scan.Changes.Fixed...)
+		changes.Added = cloneFindings(scan.Changes.Added)
+		changes.Fixed = cloneFindings(scan.Changes.Fixed)
 		scan.Changes = &changes
 	}
 
 	return scan
+}
+
+// cloneFindings копирует срез, сохраняя пустой (но не nil) срез пустым:
+// JSON-контракт требует `[]`, а не `null`. append([]T(nil), empty...) вернул бы nil.
+func cloneFindings(findings []Finding) []Finding {
+	if findings == nil {
+		return nil
+	}
+
+	result := make([]Finding, len(findings))
+	copy(result, findings)
+	return result
 }
