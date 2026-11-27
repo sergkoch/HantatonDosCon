@@ -146,8 +146,9 @@ func (p *Postgres) List(ctx context.Context, targetURL, owner string, limit int)
 		       score, pages_count, checked_links, unverified_links, error,
 		       stats, changes, created_at
 		FROM scans
-		-- Пустой owner_id не должен видеть чужие сканы: сравниваем строго,
-		-- иначе запрос без X-Client-ID раскрывал бы историю всех клиентов.
+		-- Пустой owner_id — это сканы без X-Client-ID. Он не должен видеть
+		-- чужие сканы, поэтому сравниваем владельца всегда, а не только
+		-- при непустом $2 (иначе условие раскрывало всю историю).
 		WHERE ($1 = '' OR url = $1) AND owner_id = $2
 		ORDER BY created_at DESC
 		LIMIT $3`, targetURL, owner, limit)
@@ -252,15 +253,13 @@ func (p *Postgres) findingsBy(ctx context.Context, scanID string) ([]Finding, er
 		       title_alt, recommendation_alt
 		FROM findings
 		WHERE scan_id = $1
-		ORDER BY
-			CASE severity
-				WHEN 'critical' THEN 0
-				WHEN 'warning' THEN 1
-				WHEN 'ok' THEN 2
-				ELSE 3
-			END,
-			created_at,
-			id`, scanID)
+		-- Стабильный порядок: критичные → предупреждения → «в порядке»,
+		-- затем по времени и id. Иначе PostgreSQL мог вернуть строки иначе.
+		ORDER BY CASE severity
+			WHEN 'critical' THEN 0
+			WHEN 'warning' THEN 1
+			ELSE 2
+		END, created_at, id`, scanID)
 	if err != nil {
 		return nil, err
 	}

@@ -1,28 +1,28 @@
 import { describe, expect, it } from "vitest";
-import type { Finding, Scan } from "../types";
 import {
+  historySummary,
   kindBreakdown,
-  problemsCount,
-  summarizeScans,
+  problemFindings,
   wcagBreakdown,
 } from "./insights";
+import type { Finding, Scan } from "../types";
 
-function finding(partial: Partial<Finding>): Finding {
+function finding(
+  overrides: Partial<Finding> & Pick<Finding, "kind" | "severity" | "wcag">,
+): Finding {
   return {
     id: "f1",
-    kind: "image",
-    severity: "critical",
-    title: "t",
-    element: "e",
-    recommendation: "r",
-    wcag: "1.1.1",
-    ...partial,
+    code: "CODE",
+    title: "Проблема",
+    element: "<img>",
+    recommendation: "Исправьте",
+    ...overrides,
   };
 }
 
-function scan(partial: Partial<Scan>): Scan {
+function scan(overrides: Partial<Scan> = {}): Scan {
   return {
-    id: "s1",
+    id: "scan-1",
     url: "https://example.ru",
     depth: 1,
     status: "done",
@@ -32,92 +32,121 @@ function scan(partial: Partial<Scan>): Scan {
     stats: { critical: 0, warning: 0, ok: 0 },
     findings: [],
     createdAt: "2026-11-27T10:00:00Z",
-    ...partial,
+    ...overrides,
   };
 }
 
+describe("problemFindings", () => {
+  it("ignores ok findings", () => {
+    const findings = [
+      finding({ id: "a", kind: "image", severity: "critical", wcag: "1.1.1" }),
+      finding({ id: "b", kind: "image", severity: "ok", wcag: "1.1.1" }),
+      finding({ id: "c", kind: "link", severity: "warning", wcag: "2.4.4" }),
+    ];
+
+    expect(problemFindings(findings).map((item) => item.id)).toEqual([
+      "a",
+      "c",
+    ]);
+  });
+});
+
 describe("kindBreakdown", () => {
-  it("returns nothing for an empty list", () => {
+  it("returns an empty list for an empty scan", () => {
     expect(kindBreakdown([])).toEqual([]);
   });
 
-  it("ignores findings in order", () => {
-    const rows = kindBreakdown([
-      finding({ id: "a", kind: "link", severity: "warning" }),
-      finding({ id: "b", kind: "image" }),
-      finding({ id: "c", kind: "image" }),
-      finding({ id: "d", kind: "image", severity: "ok" }),
-    ]);
+  it("sorts by frequency and scales bars from the maximum", () => {
+    const findings = [
+      finding({ id: "1", kind: "link", severity: "critical", wcag: "2.4.4" }),
+      finding({ id: "2", kind: "image", severity: "critical", wcag: "1.1.1" }),
+      finding({ id: "3", kind: "image", severity: "warning", wcag: "1.1.1" }),
+      finding({ id: "4", kind: "pdf", severity: "ok", wcag: "1.3.1" }),
+    ];
 
-    expect(rows).toEqual([
+    expect(kindBreakdown(findings)).toEqual([
       { key: "image", count: 2, percent: 100 },
       { key: "link", count: 1, percent: 50 },
     ]);
   });
 
-  it("counts problems across all types", () => {
+  it("counts every problem exactly once", () => {
     const findings = [
-      finding({ id: "a" }),
-      finding({ id: "b", kind: "pdf" }),
-      finding({ id: "c", severity: "ok" }),
+      finding({ id: "1", kind: "image", severity: "critical", wcag: "1.1.1" }),
+      finding({ id: "2", kind: "pdf", severity: "warning", wcag: "1.3.1" }),
+      finding({ id: "3", kind: "table", severity: "warning", wcag: "1.3.1" }),
+      finding({ id: "4", kind: "form", severity: "ok", wcag: "3.3.2" }),
     ];
 
-    expect(problemsCount(findings)).toBe(2);
-    const sum = kindBreakdown(findings).reduce((acc, row) => acc + row.count, 0);
-    expect(sum).toBe(2);
+    const rows = kindBreakdown(findings);
+    const total = rows.reduce((sum, row) => sum + row.count, 0);
+
+    expect(total).toBe(problemFindings(findings).length);
   });
 });
 
 describe("wcagBreakdown", () => {
-  it("groups by WCAG criterion and sorts by frequency", () => {
-    const rows = wcagBreakdown([
-      finding({ id: "a", wcag: "1.1.1" }),
-      finding({ id: "b", wcag: "2.4.4" }),
-      finding({ id: "c", wcag: "1.1.1" }),
-    ]);
+  it("groups by criterion and puts frequent ones first", () => {
+    const findings = [
+      finding({ id: "1", kind: "link", severity: "critical", wcag: "2.4.4" }),
+      finding({ id: "2", kind: "link", severity: "warning", wcag: "2.4.4" }),
+      finding({ id: "3", kind: "image", severity: "critical", wcag: "1.1.1" }),
+      finding({ id: "4", kind: "image", severity: "ok", wcag: "1.1.1" }),
+    ];
 
-    expect(rows.map((row) => row.key)).toEqual(["1.1.1", "2.4.4"]);
-    expect(rows[0].percent).toBe(100);
-    expect(rows[1].percent).toBe(50);
+    expect(wcagBreakdown(findings)).toEqual([
+      { key: "2.4.4", count: 2, percent: 100 },
+      { key: "1.1.1", count: 1, percent: 50 },
+    ]);
   });
 });
 
-describe("summarizeScans", () => {
-  it("handles empty history", () => {
-    expect(summarizeScans([])).toEqual({
+describe("historySummary", () => {
+  it("returns an empty summary for an empty history", () => {
+    expect(historySummary([])).toEqual({
       total: 0,
-      average: null,
+      averageScore: null,
       critical: 0,
-      lastAt: null,
+      lastDate: null,
     });
   });
 
   it("averages only numeric scores", () => {
-    const summary = summarizeScans([
-      scan({ id: "a", score: 100 }),
-      scan({ id: "b", score: 50 }),
-      scan({ id: "c", score: null, status: "running" }),
+    const summary = historySummary([
+      scan({
+        id: "1",
+        score: 100,
+        stats: { critical: 1, warning: 2, ok: 3 },
+        createdAt: "2026-11-25T10:00:00Z",
+      }),
+      scan({
+        id: "2",
+        score: 50,
+        stats: { critical: 2, warning: 0, ok: 1 },
+        createdAt: "2026-11-27T10:00:00Z",
+      }),
+      scan({
+        id: "3",
+        status: "running",
+        score: null,
+        stats: { critical: 0, warning: 0, ok: 0 },
+        createdAt: "2026-11-26T10:00:00Z",
+      }),
     ]);
 
     expect(summary.total).toBe(3);
-    expect(summary.average).toBe(75);
+    expect(summary.averageScore).toBe(75);
+    expect(summary.critical).toBe(3);
+    expect(summary.lastDate).toBe("2026-11-27T10:00:00Z");
   });
 
-  it("sums critical findings and finds the latest scan", () => {
-    const summary = summarizeScans([
-      scan({
-        id: "a",
-        createdAt: "2026-11-25T10:00:00Z",
-        stats: { critical: 2, warning: 1, ok: 0 },
-      }),
-      scan({
-        id: "b",
-        createdAt: "2026-11-27T12:00:00Z",
-        stats: { critical: 1, warning: 0, ok: 0 },
-      }),
+  it("does not break on queued scans without a score", () => {
+    const summary = historySummary([
+      scan({ id: "1", status: "queued", score: null, createdAt: "2026-11-24T10:00:00Z" }),
+      scan({ id: "2", status: "done", score: 80, createdAt: "2026-11-23T10:00:00Z" }),
     ]);
 
-    expect(summary.critical).toBe(3);
-    expect(summary.lastAt).toBe("2026-11-27T12:00:00Z");
+    expect(summary.averageScore).toBe(80);
+    expect(summary.lastDate).toBe("2026-11-24T10:00:00Z");
   });
 });

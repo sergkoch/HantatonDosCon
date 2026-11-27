@@ -1,21 +1,31 @@
 let path = $state(window.location.pathname);
 
 function applyPath(next: string): void {
+  const changed = path !== next;
   path = next;
-  window.scrollTo({ top: 0, behavior: "auto" });
+
+  if (changed) {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  // preventScroll важен: иначе фокус на main прокручивает страницу второй раз.
   requestAnimationFrame(() => {
     document.getElementById("main")?.focus({ preventScroll: true });
   });
 }
 
 export function navigate(to: string): void {
+  const url = new URL(to, window.location.origin);
+  const target = url.pathname + url.search;
   const current = window.location.pathname + window.location.search;
-  if (current === to) {
+
+  // Повторный клик по текущему пункту меню не должен сбрасывать прокрутку.
+  if (target === current) {
     return;
   }
 
-  window.history.pushState(null, "", to);
-  applyPath(to);
+  window.history.pushState(null, "", target + url.hash);
+  applyPath(url.pathname);
 }
 
 export function getPath(): string {

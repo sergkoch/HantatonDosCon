@@ -5,7 +5,7 @@
   import { prefetchHistory } from "../lib/routes";
   import { getTheme, toggleTheme } from "../lib/theme.svelte";
   import { getLocale, setLocale, t } from "../lib/i18n.svelte";
-  import { openConsent } from "../lib/cookieConsent.svelte";
+  import { openCookieConsent } from "../lib/cookieConsent.svelte";
   import CookieConsent from "./CookieConsent.svelte";
 
   let { children }: { children: Snippet } = $props();
@@ -71,31 +71,33 @@
   }
 
   $effect(() => {
-    const current = path;
-    if (current === "/") {
-      document.title = t("meta.titleHome");
-    } else if (current === "/history") {
-      document.title = t("meta.titleHistory");
-    } else if (current.startsWith("/report/")) {
-      document.title = t("meta.titleReport");
-    } else {
-      document.title = t("meta.titleNotFound");
-    }
+    const key =
+      path === "/"
+        ? "meta.titleHome"
+        : path === "/history"
+          ? "meta.titleHistory"
+          : path.startsWith("/report/")
+            ? "meta.titleReport"
+            : "meta.titleNotFound";
 
+    document.title = t(key);
     const description = document.querySelector('meta[name="description"]');
     if (description) {
       description.setAttribute("content", t("site.description"));
     }
   });
 
-  async function goHow(event: MouseEvent) {
+  async function onHowClick(event: MouseEvent) {
     if (!isPlainClick(event)) return;
     event.preventDefault();
 
     if (getPath() !== "/") {
       navigate("/");
-      await tick();
     }
+
+    await tick();
+    // Даём router завершить фокус на main, иначе он перебьёт фокус секции.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
     const section = document.getElementById("how");
     if (!section) return;
@@ -164,7 +166,7 @@
           >
             {t("layout.navHistory")}
           </a>
-          <a href="/#how" onclick={goHow}>{t("layout.navHow")}</a>
+          <a href="/#how" onclick={onHowClick}>{t("layout.navHow")}</a>
         </nav>
 
         <div class="lang">
@@ -286,64 +288,52 @@
 
   <footer class="site-footer">
     <div class="container site-footer__inner">
-      <div class="site-footer__contacts-wrap">
+      <div class="site-footer__team">
         <p class="site-footer__contacts-title">{t("layout.contacts")}</p>
         <ul class="site-footer__contacts">
           <li class="site-footer__contact">
-            <span class="site-footer__contact-name"
-              >{t("footer.nameAndrey")}</span
-            >
-            <a class="site-footer__contact-email" href="mailto:heisenba@mail.ru"
-              >heisenba@mail.ru</a
-            >
-            <a class="site-footer__contact-phone" href="tel:+79821892721"
-              >+7 982 189 27 21</a
-            >
-            <span class="site-footer__contact-role"
-              >{t("footer.roleAndrey")}</span
-            >
+            <span class="site-footer__contact-name">{t("footer.nameAndrey")}</span>
+            <span class="site-footer__contact-role">{t("footer.roleAndrey")}</span>
+            <span class="site-footer__contact-details">
+              <a href="mailto:heisenba@mail.ru">heisenba@mail.ru</a>
+              <span aria-hidden="true"> · </span>
+              <a href="tel:+79821892721">+7 982 189 27 21</a>
+            </span>
           </li>
           <li class="site-footer__contact">
             <span class="site-footer__contact-name"
               >{t("footer.nameKonstantin")}</span
             >
-            <a
-              class="site-footer__contact-email"
-              href="mailto:shrekichevsk@gmail.com">shrekichevsk@gmail.com</a
-            >
-            <a class="site-footer__contact-phone" href="tel:+79324014890"
-              >+7 932 401 48 90</a
-            >
             <span class="site-footer__contact-role"
               >{t("footer.roleKonstantin")}</span
             >
+            <span class="site-footer__contact-details">
+              <a href="mailto:shrekichevsk@gmail.com">shrekichevsk@gmail.com</a>
+              <span aria-hidden="true"> · </span>
+              <a href="tel:+79324014890">+7 932 401 48 90</a>
+            </span>
           </li>
           <li class="site-footer__contact">
-            <span class="site-footer__contact-name"
-              >{t("footer.nameSergey")}</span
-            >
-            <a class="site-footer__contact-email" href="mailto:Gayka.pon@mail.ru"
-              >Gayka.pon@mail.ru</a
-            >
-            <a class="site-footer__contact-phone" href="tel:+79825457103"
-              >+7 982 545-71-03</a
-            >
-            <span class="site-footer__contact-role"
-              >{t("footer.roleSergey")}</span
-            >
+            <span class="site-footer__contact-name">{t("footer.nameSergey")}</span>
+            <span class="site-footer__contact-role">{t("footer.roleSergey")}</span>
+            <span class="site-footer__contact-details">
+              <a href="mailto:Gayka.pon@mail.ru">Gayka.pon@mail.ru</a>
+              <span aria-hidden="true"> · </span>
+              <a href="tel:+79825457103">+7 982 545-71-03</a>
+            </span>
           </li>
         </ul>
       </div>
 
       <div class="site-footer__consent">
-        <p class="site-footer__consent-note">{t("footer.cookieNote")}</p>
         <button
-          class="button button--ghost site-footer__consent-button"
+          class="button button--ghost button--small"
           type="button"
-          onclick={openConsent}
+          onclick={openCookieConsent}
         >
-          {t("footer.cookieTitle")}
+          {t("cookie.footerButton")}
         </button>
+        <p class="site-footer__consent-note">{t("cookie.footerNote")}</p>
       </div>
     </div>
   </footer>

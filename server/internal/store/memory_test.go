@@ -104,6 +104,32 @@ func TestMemoryClonesFindings(t *testing.T) {
 	}
 }
 
+func TestMemoryPreservesEmptySlices(t *testing.T) {
+	ctx := context.Background()
+	memory := NewMemory()
+	scan := Scan{
+		ID:       "empty-slices",
+		URL:      "https://example.ru",
+		Status:   StatusDone,
+		Findings: []Finding{},
+		Changes:  &Changes{Added: []Finding{}, Fixed: []Finding{}},
+	}
+	if err := memory.Create(ctx, scan); err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, err := memory.Get(ctx, "empty-slices")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Findings == nil {
+		t.Fatal("findings must stay an empty array, not null")
+	}
+	if loaded.Changes == nil || loaded.Changes.Added == nil || loaded.Changes.Fixed == nil {
+		t.Fatal("changes arrays must stay empty arrays, not null")
+	}
+}
+
 func TestMemoryLimit(t *testing.T) {
 	ctx := context.Background()
 	memory := NewMemory()

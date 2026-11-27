@@ -52,12 +52,11 @@ export default defineConfig({
   plugins: [svelte(), inlineCss()],
   server: {
     port: 5173,
+    watch: {
+      ignored: ["**/dist/**"],
+    },
     proxy: {
       "/api": "http://localhost:8080",
-    },
-    watch: {
-      // Сборка в dist не должна ронять запущенный dev-сервер (EBUSY на Windows).
-      ignored: ["**/dist/**"],
     },
   },
   test: {

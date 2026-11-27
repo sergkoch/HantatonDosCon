@@ -18,56 +18,47 @@ type gateLimits struct {
 }
 
 type gateResponse struct {
-	ID       string     `json:"id"`
-	URL      string     `json:"url"`
-	Status   string     `json:"status"`
-	Passed   bool       `json:"passed"`
-	Score    *int       `json:"score"`
-	Critical int        `json:"critical"`
-	Warning  int        `json:"warning"`
-	Limits   gateLimits `json:"limits"`
-	Reasons  []string   `json:"reasons"`
+	ID       string       `json:"id"`
+	URL      string       `json:"url"`
+	Status   store.Status `json:"status"`
+	Passed   bool         `json:"passed"`
+	Score    *int         `json:"score"`
+	Critical int          `json:"critical"`
+	Warning  int          `json:"warning"`
+	Limits   gateLimits   `json:"limits"`
+	Reasons  []string     `json:"reasons"`
 }
 
-// parseGateLimit читает целочисленный query-параметр.
-// kind = "int" — не число, "range" — вне диапазона.
-func parseGateLimit(raw string, fallback, min, max int) (int, string) {
-	if strings.TrimSpace(raw) == "" {
-		return fallback, ""
+// gateInt читает целочисленный query-параметр. Пустое значение — значение
+// по умолчанию; нечисловое — ошибка (ok == false).
+func gateInt(c *gin.Context, name string, fallback int) (int, bool) {
+	raw := strings.TrimSpace(c.Query(name))
+	if raw == "" {
+		return fallback, true
 	}
 
 	value, err := strconv.Atoi(raw)
 	if err != nil {
-		return 0, "int"
-	}
-	if value < min || (max >= 0 && value > max) {
-		return 0, "range"
+		return 0, false
 	}
 
-	return value, ""
+	return value, true
 }
 
-// gate проверяет скан по порогам и годится для CI: успех — 200, провал — 409.
+// gate — CI-гейт: отдаёт 200, если скан проходит пороги, и 409, если нет.
+// Так `curl --fail` завершается ненулевым кодом и ломает пайплайн.
 func (h *handler) gate(c *gin.Context) {
 	lang := requestLang(c)
 
-	minScore, problem := parseGateLimit(c.Query("min_score"), 0, 0, 100)
-	if problem != "" {
-		key := texts.ErrParamRange
-		if problem == "int" {
-			key = texts.ErrParam
-		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.Tf(lang, key, "min_score")})
+	minScore, ok := gateInt(c, "min_score", 0)
+	if !ok || minScore < 0 || minScore > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.T(lang, texts.ErrGateMinScore)})
 		return
 	}
 
-	maxCritical, problem := parseGateLimit(c.Query("max_critical"), 0, 0, -1)
-	if problem != "" {
-		key := texts.ErrParamRange
-		if problem == "int" {
-			key = texts.ErrParam
-		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.Tf(lang, key, "max_critical")})
+	maxCritical, ok := gateInt(c, "max_critical", 0)
+	if !ok || maxCritical < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_input", "detail": texts.T(lang, texts.ErrGateMaxCritical)})
 		return
 	}
 
@@ -80,50 +71,69 @@ func (h *handler) gate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "store_error", "detail": texts.T(lang, texts.ErrStore)})
 		return
 	}
+
+	// Чужой скан неотличим от несуществующего.
 	if !isOwner(scan, clientID(c)) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not_found", "detail": texts.T(lang, texts.ErrNotFound)})
 		return
 	}
 
-	if scan.Status == store.StatusQueued || scan.Status == store.StatusRunning {
-		c.JSON(http.StatusConflict, gin.H{"error": "not_ready", "detail": texts.T(lang, texts.GateNotReady)})
+	switch scan.Status {
+	case store.StatusQueued, store.StatusRunning:
+		c.JSON(http.StatusConflict, gin.H{
+			"id":     scan.ID,
+			"url":    scan.URL,
+			"status": scan.Status,
+			"error":  "not_ready",
+			"detail": texts.T(lang, texts.ErrGateNotReady),
+		})
+		return
+	case store.StatusFailed:
+		detail := scan.Error
+		if detail == "" {
+			detail = texts.T(lang, texts.ErrGateFailed)
+		}
+		c.JSON(http.StatusConflict, gin.H{
+			"id":     scan.ID,
+			"url":    scan.URL,
+			"status": scan.Status,
+			"error":  "failed",
+			"detail": detail,
+		})
 		return
 	}
 
-	limits := gateLimits{MinScore: minScore, MaxCritical: maxCritical}
+	score := 0
+	if scan.Score != nil {
+		score = *scan.Score
+	}
+
 	reasons := make([]string, 0, 2)
-	passed := scan.Status == store.StatusDone
-
-	if !passed {
-		reason := strings.TrimSpace(scan.Error)
-		if reason == "" {
-			reason = texts.T(lang, texts.GateNotReady)
-		}
-		reasons = append(reasons, reason)
-	} else {
-		if scan.Score != nil && *scan.Score < minScore {
-			reasons = append(reasons, texts.Tf(lang, texts.GateScoreBelow, *scan.Score, minScore))
-		}
-		if scan.Stats.Critical > maxCritical {
-			reasons = append(reasons, texts.Tf(lang, texts.GateCriticalAbove, scan.Stats.Critical, maxCritical))
-		}
-		passed = len(reasons) == 0
+	if score < minScore {
+		reasons = append(reasons, texts.Tf(lang, texts.ErrGateScore, score, minScore))
+	}
+	if scan.Stats.Critical > maxCritical {
+		reasons = append(reasons, texts.Tf(lang, texts.ErrGateCritical, scan.Stats.Critical, maxCritical))
 	}
 
-	code := http.StatusOK
+	passed := len(reasons) == 0
+	status := http.StatusOK
 	if !passed {
-		code = http.StatusConflict
+		status = http.StatusConflict
 	}
 
-	c.JSON(code, gateResponse{
+	c.JSON(status, gateResponse{
 		ID:       scan.ID,
 		URL:      scan.URL,
-		Status:   string(scan.Status),
+		Status:   scan.Status,
 		Passed:   passed,
 		Score:    scan.Score,
 		Critical: scan.Stats.Critical,
 		Warning:  scan.Stats.Warning,
-		Limits:   limits,
-		Reasons:  reasons,
+		Limits: gateLimits{
+			MinScore:    minScore,
+			MaxCritical: maxCritical,
+		},
+		Reasons: reasons,
 	})
 }

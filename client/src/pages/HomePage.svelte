@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { createScan } from "../api";
   import { navigate } from "../lib/router.svelte";
   import { t } from "../lib/i18n.svelte";
@@ -10,6 +11,20 @@
   let error = $state("");
   let busy = $state(false);
   let urlInput: HTMLInputElement;
+
+  onMount(() => {
+    if (window.location.hash !== "#how") return;
+
+    const section = document.getElementById("how");
+    if (!section) return;
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    section.scrollIntoView({
+      behavior: reduce ? "auto" : "smooth",
+      block: "start",
+    });
+    section.focus({ preventScroll: true });
+  });
 
   async function onSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -108,14 +123,13 @@
     {/if}
   </section>
 
-  <section class="section" id="how" aria-labelledby="how-title" tabindex="-1">
+  <section class="section" id="how" tabindex="-1" aria-labelledby="how-title">
     <div class="how">
       <div class="how__head">
         <div>
           <p class="how__eyebrow">{t("home.howEyebrow")}</p>
           <h2 class="section__title" id="how-title">{t("home.howTitle")}</h2>
         </div>
-        <p class="how__note">{t("home.howNote")}</p>
       </div>
 
       <ol class="how__steps">

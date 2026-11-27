@@ -1,58 +1,67 @@
+/**
+ * Общее состояние баннера согласия на cookie.
+ *
+ * Согласие хранится в localStorage под ключом `cookie-consent`. Модуль
+ * используется и баннером, и кнопкой в футере: кнопка открывает карточку
+ * заново, даже если согласие уже принято.
+ */
+
 const STORAGE_KEY = "cookie-consent";
 
-function readAccepted(): boolean {
-  if (typeof localStorage === "undefined") {
-    return false;
-  }
+let visible = $state(false);
+let accepted = $state(false);
+let loaded = $state(false);
 
+function read(): boolean {
   try {
     return localStorage.getItem(STORAGE_KEY) === "accepted";
   } catch {
+    // Приватный режим или отключённое хранилище: согласие живёт до перезагрузки.
     return false;
   }
 }
 
-let accepted = $state(readAccepted());
-let open = $state(false);
-let started = false;
+function ensureLoaded(): void {
+  if (loaded) return;
+  accepted = read();
+  visible = !accepted;
+  loaded = true;
+}
 
-export function consentAccepted(): boolean {
+/** Инициализация при монтировании приложения. */
+export function initCookieConsent(): void {
+  ensureLoaded();
+}
+
+/** Открыт ли баннер прямо сейчас. */
+export function isCookieBannerOpen(): boolean {
+  return visible;
+}
+
+/** Принято ли согласие в этом браузере. */
+export function isCookieAccepted(): boolean {
   return accepted;
 }
 
-export function consentOpen(): boolean {
-  return open;
+/** Открыть карточку согласия из футера. */
+export function openCookieConsent(): void {
+  ensureLoaded();
+  visible = true;
 }
 
-/** Открывает карточку согласия (в том числе повторно из футера). */
-export function openConsent(): void {
-  open = true;
+/** Закрыть карточку без сохранения согласия. */
+export function closeCookieConsent(): void {
+  visible = false;
 }
 
-/** Просто закрывает карточку, не записывая согласие. */
-export function closeConsent(): void {
-  open = false;
-}
-
-export function acceptConsent(): void {
+/** Принять согласие и запомнить его между перезагрузками. */
+export function acceptCookieConsent(): void {
   accepted = true;
-  open = false;
+  visible = false;
 
   try {
     localStorage.setItem(STORAGE_KEY, "accepted");
   } catch {
-    // приватный режим: согласие живёт до перезагрузки
-  }
-}
-
-/** Показывает карточку при первом визите, если согласия ещё нет. */
-export function initConsent(): void {
-  if (started) {
-    return;
-  }
-  started = true;
-
-  if (!accepted) {
-    open = true;
+    // localStorage недоступен — скрываем баннер до конца сессии.
   }
 }
