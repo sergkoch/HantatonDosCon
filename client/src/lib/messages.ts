@@ -29,7 +29,7 @@ const ru = {
   "footer.nameKonstantin": "Константин",
   "footer.roleKonstantin": "дизайнер",
   "footer.nameSergey": "Сергей",
-  "footer.roleSergey": "презентатор и программист",
+  "footer.roleSergey": "капитан команды и программист",
 
   "cookie.label": "Использование файлов cookie",
   "cookie.title": "Cookies и локальное хранилище",
@@ -73,7 +73,6 @@ const ru = {
   "home.error": "Не удалось запустить проверку",
   "home.howEyebrow": "Процесс",
   "home.howTitle": "Как это работает",
-  "home.howNote": "3 шага · без настройки",
   "home.step1Title": "Вставьте адрес",
   "home.step1Text":
     "Вставьте адрес сайта. Можно проверить одну страницу или пройти по ссылкам с неё.",
@@ -252,7 +251,7 @@ const en: Record<MessageKey, string> = {
   "footer.nameKonstantin": "Konstantin",
   "footer.roleKonstantin": "designer",
   "footer.nameSergey": "Sergey",
-  "footer.roleSergey": "presenter and programmer",
+  "footer.roleSergey": "team captain and programmer",
 
   "cookie.label": "Cookie usage",
   "cookie.title": "Cookies and local storage",
@@ -295,7 +294,6 @@ const en: Record<MessageKey, string> = {
   "home.error": "Could not start the check",
   "home.howEyebrow": "Process",
   "home.howTitle": "How it works",
-  "home.howNote": "3 steps · no setup",
   "home.step1Title": "Paste the address",
   "home.step1Text":
     "Paste the site address. You can check one page or follow the links from it.",

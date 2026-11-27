@@ -259,6 +259,7 @@
 
     <div class="actions actions--between">
       <a
+        class="button button--blue"
         href="/"
         onclick={(event) => {
           if (!isPlainClick(event)) return;

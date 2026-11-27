@@ -130,7 +130,6 @@
           <p class="how__eyebrow">{t("home.howEyebrow")}</p>
           <h2 class="section__title" id="how-title">{t("home.howTitle")}</h2>
         </div>
-        <p class="how__note">{t("home.howNote")}</p>
       </div>
 
       <ol class="how__steps">

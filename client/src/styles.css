@@ -58,6 +58,9 @@
   --ok: #4ade80;
   --ok-bg: rgba(74, 222, 128, 0.13);
   --ok-border: rgba(74, 222, 128, 0.25);
+  --info: #60a5fa;
+  --info-bg: rgba(96, 165, 250, 0.13);
+  --info-border: rgba(96, 165, 250, 0.28);
 
   --focus: #22d3ee;
   --track: rgba(255, 255, 255, 0.1);
@@ -141,6 +144,9 @@
   --ok: #15803d;
   --ok-bg: rgba(21, 128, 61, 0.09);
   --ok-border: rgba(21, 128, 61, 0.22);
+  --info: #1d4ed8;
+  --info-bg: rgba(29, 78, 216, 0.08);
+  --info-border: rgba(29, 78, 216, 0.22);
 
   --focus: #0369a1;
   --track: #e2e8f0;
@@ -728,6 +734,16 @@ a:hover {
 
 .button--ghost:hover:not(:disabled) {
   background: var(--accent-weak-2);
+}
+
+.button--blue {
+  color: var(--info);
+  background: var(--info-bg);
+  border-color: var(--info-border);
+}
+
+.button--blue:hover:not(:disabled) {
+  border-color: var(--info);
 }
 
 .button--danger {
