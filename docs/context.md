@@ -10,7 +10,7 @@
 ## 1. GitHub
 
 - Репозиторий: `https://github.com/sergkoch/HantatonDosCon`
-- Основная ветка: `main`, на 28.11.2026 — `490d805`.
+- Основная ветка: `main`; последний функциональный merge — PR #99, коммит `490d805` на 28.11.2026.
 - В `main` только через PR и зелёный CI.
 - Ветка задачи: `task/<slug>`. Для PR создаётся видимый алиас `team/<slug>`.
 
@@ -173,7 +173,7 @@ sudo systemctl disable --now cloudflared-quick
 Проект «Доступный контент»: проверка доступности сайтов (alt, ссылки, формы,
 таблицы, заголовки, PDF) + отчёт HTML/CSV/PDF + история и diff.
 Стек: Svelte 5 + Go/Gin + PostgreSQL + Docker Compose.
-Репозиторий sergkoch/HantatonDosCon, main 490d805, PR только через ветку.
+Репозиторий sergkoch/HantatonDosCon, последний функциональный merge 490d805, PR только через ветку.
 Аккаунт heisenbaf в теневом бане: PR открывает sergkoch или shrekichevsk.
 Сервер 84.54.57.218, пользователь serega, /opt/accessible-content,
 git от serega, docker через sudo, env в deploy/.env.
