@@ -53,16 +53,43 @@ export function toggleTheme(event?: MouseEvent): void {
     return;
   }
 
-  const transition = startViewTransition(async () => {
+  let applied = false;
+  const apply = () => {
+    if (applied) return;
+    applied = true;
     setTheme(next);
-    await tick();
-  });
+  };
+
+  let transition: { ready: Promise<void>; skipTransition?: () => void };
+
+  try {
+    transition = startViewTransition(async () => {
+      apply();
+      await tick();
+    });
+  } catch {
+    apply();
+    return;
+  }
+
+  // Если переход не запустился (фоновая вкладка, троттлинг), кнопка всё равно
+  // должна работать: применяем тему принудительно и снимаем зависший переход.
+  const fallback = window.setTimeout(() => {
+    apply();
+    try {
+      transition.skipTransition?.();
+    } catch {
+      // переход уже завершён
+    }
+  }, 300);
 
   const x = event?.clientX ?? window.innerWidth - 48;
   const y = event?.clientY ?? 48;
 
   transition.ready
     .then(() => {
+      window.clearTimeout(fallback);
+
       const radius = Math.hypot(
         Math.max(x, window.innerWidth - x),
         Math.max(y, window.innerHeight - y),
@@ -83,6 +110,7 @@ export function toggleTheme(event?: MouseEvent): void {
       );
     })
     .catch(() => {
-      // если анимация недоступна — тема всё равно уже переключена
+      window.clearTimeout(fallback);
+      apply();
     });
 }

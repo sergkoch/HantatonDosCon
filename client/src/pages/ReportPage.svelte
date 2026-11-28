@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { createScan, getScan, getScanPdf } from "../api";
   import Badge from "../components/Badge.svelte";
   import Button from "../components/Button.svelte";
@@ -8,7 +9,7 @@
   import { kindBreakdown, wcagBreakdown } from "../lib/insights";
   import { type Locale, type MessageKey, translate } from "../lib/messages";
   import { kindLabel, scoreLabel } from "../lib/score";
-  import type { Scan, Severity } from "../types";
+  import type { Finding, Scan, Severity } from "../types";
 
   let { id }: { id: string } = $props();
 
@@ -40,7 +41,9 @@
 
     async function load() {
       try {
-        const next = await getScan(id);
+        // fetch добавляет X-Lang из текущей локали: смена языка не должна
+        // перезапускать опрос скана.
+        const next = await untrack(() => getScan(id));
         if (!active) return;
 
         const finished = next.status === "done" || next.status === "failed";
@@ -125,10 +128,26 @@
     ok: 2,
   };
 
+  // Язык отчёта — это язык сайта из кнопки «Язык» в шапке.
+  const reportLang = $derived(getLocale());
+  const scanLang = $derived(scan?.lang === "en" ? "en" : "ru");
+
+  function localizeItems(items: Finding[]): Finding[] {
+    if (reportLang === scanLang) {
+      return items;
+    }
+
+    return items.map((finding) => ({
+      ...finding,
+      title: finding.titleAlt || finding.title,
+      recommendation: finding.recommendationAlt || finding.recommendation,
+    }));
+  }
+
   const problems = $derived(
-    (scan?.findings ?? [])
-      .filter((finding) => finding.severity !== "ok")
-      .sort((a, b) => severityRank[a.severity] - severityRank[b.severity]),
+    localizeItems(
+      (scan?.findings ?? []).filter((finding) => finding.severity !== "ok"),
+    ).sort((a, b) => severityRank[a.severity] - severityRank[b.severity]),
   );
 
   const findings = $derived(
@@ -170,11 +189,9 @@
     }
   }
 
-  function downloadCsv(current: Scan) {    // Файл должен быть на одном языке: берём язык, на котором шёл скан.
-    const locale: Locale =
-      current.lang === "en" || current.lang === "ru"
-        ? current.lang
-        : getLocale();
+  function downloadCsv(current: Scan) {
+    // CSV выгружается на языке сайта, как и сам отчёт.
+    const locale: Locale = getLocale();
     const tr = (key: MessageKey) => translate(locale, key);
 
     const rows = [
@@ -186,7 +203,7 @@
         tr("csv.recommendation"),
         tr("csv.wcag"),
       ],
-      ...current.findings.map((finding) => [
+      ...localizeItems(current.findings).map((finding) => [
         tr(severityKeys[finding.severity]),
         kindLabel(finding.kind, locale),
         finding.title,
@@ -269,7 +286,26 @@
 
 {#if error}
   <div class="container">
-    <p class="field__error" role="alert">{error}</p>
+    <section class="section" aria-labelledby="report-error-title">
+      <p class="hero__eyebrow">{t("report.scanEyebrow")}</p>
+      <h1 class="section__title" id="report-error-title">
+        {t("report.errorTitle")}
+      </h1>
+      <p class="field__error" role="alert">{error}</p>
+      <div class="actions">
+        <a
+          class="button button--primary"
+          href="/"
+          onclick={(event) => {
+            if (!isPlainClick(event)) return;
+            event.preventDefault();
+            navigate("/");
+          }}
+        >
+          {t("report.tryAgain")}
+        </a>
+      </div>
+    </section>
   </div>
 {:else if scan && scan.status === "failed"}
   <div class="container">
@@ -389,8 +425,8 @@
       </div>
 
       {#if current.changes}
-        {@const added = current.changes.added ?? []}
-        {@const fixed = current.changes.fixed ?? []}
+        {@const added = localizeItems(current.changes.added ?? [])}
+        {@const fixed = localizeItems(current.changes.fixed ?? [])}
         <section class="section" aria-labelledby="changes-title">
           <h2 class="section__title" id="changes-title">
             {t("report.changesTitle")}

@@ -183,7 +183,9 @@
     {:else if loading}
       <p class="status" aria-live="polite">{t("history.loading")}</p>
     {:else if scans.length === 0}
-      <p class="empty">{t("history.empty")}</p>
+      <p class="empty">
+        {query.trim() ? t("history.emptyFilter") : t("history.empty")}
+      </p>
     {:else}
       <div class="table-wrap">
         <table class="table">
@@ -231,7 +233,7 @@
                       class="button button--ghost button--small"
                       type="button"
                       disabled={rerunID !== ""}
-                      aria-label={`${t("history.repeat")}: ${scan.url}`}
+                      aria-label={`${t("history.repeat")}: ${scan.url}, v${scan.version}`}
                       onclick={() => void repeatScan(scan)}
                     >
                       {rerunID === scan.id
