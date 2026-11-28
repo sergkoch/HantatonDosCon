@@ -26,13 +26,14 @@
     section.focus({ preventScroll: true });
   });
 
-  async function onSubmit(event: SubmitEvent) {
-    event.preventDefault();
+  async function startScan(targetURL: string, targetDepth: number) {
+    if (busy) return;
+
     error = "";
     busy = true;
 
     try {
-      const scan = await createScan(url, depth);
+      const scan = await createScan(targetURL, targetDepth);
       navigate(`/report/${scan.id}`);
     } catch (cause) {
       error =
@@ -41,6 +42,17 @@
     } finally {
       busy = false;
     }
+  }
+
+  async function onSubmit(event: SubmitEvent) {
+    event.preventDefault();
+    await startScan(url, depth);
+  }
+
+  async function startDemo() {
+    url = "http://demo/";
+    depth = 1;
+    await startScan(url, depth);
   }
 </script>
 
@@ -121,6 +133,53 @@
     {#if error}
       <p class="field__error" id="scan-error" role="alert">{error}</p>
     {/if}
+
+    <div class="hero__demo">
+      <button
+        class="button button--ghost"
+        type="button"
+        disabled={busy}
+        onclick={startDemo}
+      >
+        {busy ? t("home.demoBusy") : t("home.demo")}
+      </button>
+      <a class="hero__demo-link" href="/demo/" target="_blank" rel="noreferrer">
+        {t("home.demoOpen")}
+      </a>
+    </div>
+    <p class="hero__evidence">{t("home.evidence")}</p>
+  </section>
+
+  <section class="section" id="problem" aria-labelledby="problem-title">
+    <div class="problem">
+      <p class="how__eyebrow">{t("home.problemEyebrow")}</p>
+      <h2 class="section__title" id="problem-title">{t("home.problemTitle")}</h2>
+      <p class="problem__text">{t("home.problemText")}</p>
+      <div class="problem__stats">
+        <div class="problem__stat">
+          <span class="problem__value">{t("home.problemStat1")}</span>
+          <span class="problem__label">{t("home.problemStat1Label")}</span>
+        </div>
+        <div class="problem__stat">
+          <span class="problem__value">{t("home.problemStat2")}</span>
+          <span class="problem__label">{t("home.problemStat2Label")}</span>
+        </div>
+      </div>
+      <p class="problem__source">
+        {t("home.problemSource")}
+        <a
+          href="https://webaim.org/projects/million/"
+          target="_blank"
+          rel="noreferrer">WebAIM Million</a
+        >
+        ·
+        <a
+          href="https://www.who.int/news-room/fact-sheets/detail/blindness-and-visual-impairment"
+          target="_blank"
+          rel="noreferrer">WHO</a
+        >
+      </p>
+    </div>
   </section>
 
   <section class="section" id="how" tabindex="-1" aria-labelledby="how-title">
@@ -161,6 +220,29 @@
           </p>
         </li>
       </ol>
+    </div>
+  </section>
+
+  <section class="section" id="value" aria-labelledby="value-title">
+    <p class="how__eyebrow">{t("home.valueEyebrow")}</p>
+    <h2 class="section__title" id="value-title">{t("home.valueTitle")}</h2>
+    <div class="value-grid">
+      <div class="value-item">
+        <h3 class="value-item__title">{t("history.title")}</h3>
+        <p class="value-item__text">{t("home.valueHistory")}</p>
+      </div>
+      <div class="value-item">
+        <h3 class="value-item__title">{t("insights.kindsTitle")}</h3>
+        <p class="value-item__text">{t("home.valueAnalytics")}</p>
+      </div>
+      <div class="value-item">
+        <h3 class="value-item__title">{t("report.gateTitle")}</h3>
+        <p class="value-item__text">{t("home.valueGate")}</p>
+      </div>
+      <div class="value-item">
+        <h3 class="value-item__title">JSON · CSV · PDF</h3>
+        <p class="value-item__text">{t("home.valueExports")}</p>
+      </div>
     </div>
   </section>
 

@@ -12,45 +12,69 @@
       "type": "application/json",
       "data": {
         "name": "Accessibility Scanner API",
-        "description": "Проверка доступности сайта: изображения, PDF, ссылки, формы, таблицы и заголовки.",
+        "description": "Проверка доступности контента: изображения, PDF, ссылки, формы, таблицы. История и CI-гейт для пайплайна.",
         "baseUrl": "https://not-domain.ru/api",
+        "authentication": {
+          "type": "header",
+          "name": "X-Client-ID",
+          "description": "Анонимный идентификатор браузера, 8–64 символа. Обязателен для сканов, истории и отчётов."
+        },
         "endpoints": [
           {
             "method": "GET",
             "path": "/health",
-            "description": "Проверка состояния сервиса и наличия ИИ."
+            "description": "Проверка, что сервис жив."
           },
           {
             "method": "POST",
             "path": "/scans",
-            "description": "Запуск проверки сайта. Тело: { url, depth }."
+            "description": "Запускает проверку. Тело: { url, depth }."
+          },
+          {
+            "method": "GET",
+            "path": "/scans",
+            "description": "История проверок текущего X-Client-ID."
+          },
+          {
+            "method": "DELETE",
+            "path": "/scans",
+            "description": "Очищает историю текущего X-Client-ID."
           },
           {
             "method": "GET",
             "path": "/scans/{id}",
-            "description": "Статус и находки проверки."
+            "description": "Полный отчёт по скану."
           },
           {
             "method": "GET",
             "path": "/scans/{id}/pdf",
-            "description": "PDF-отчёт по проверке."
+            "description": "PDF-отчёт на языке скана или параметра lang."
+          },
+          {
+            "method": "GET",
+            "path": "/scans/{id}/gate",
+            "description": "CI-гейт: 200 при прохождении порогов, 409 при провале."
           }
         ]
       },
-      "description": "Сервис проверки доступности контента по WCAG: alt, PDF, ссылки, формы, таблицы, заголовки.",
-      "tags": ["accessibility", "wcag", "pdf", "crawler", "audit"],
+      "description": "Сервис доступности по WCAG: alt, PDF, ссылки, формы, таблицы, история версий, diff, аналитика, JSON и CI-гейт.",
+      "tags": ["accessibility", "wcag", "pdf", "crawler", "audit", "ci"],
       "capabilities": [
         "ScanWebsite",
         "CheckAltText",
         "CheckPdfAccessibility",
-        "CheckLinks"
+        "CheckLinks",
+        "ScanHistory",
+        "CIGate",
+        "ExportJson"
       ],
       "representativeQueries": [
-        "проверить доступность сайта по WCAG",
-        "найти изображения без alt и PDF без тегов"
+        "Проверить доступность сайта по WCAG",
+        "Проверить alt у изображений и PDF на сайте",
+        "Встроить проверку доступности в CI"
       ],
       "version": "0.1.0",
-      "updatedAt": "2026-11-25T00:00:00Z"
+      "updatedAt": "2026-11-28T00:00:00Z"
     }
   ]
 }

@@ -17,6 +17,8 @@ export type Finding = {
   element: string;
   recommendation: string;
   wcag: string;
+  /** Уверенность ИИ для смысловых находок, 0..1. */
+  confidence?: number;
   /** Те же тексты на втором языке, если скан сохранён с переводом. */
   titleAlt?: string;
   recommendationAlt?: string;
@@ -37,6 +39,13 @@ export type Changes = {
   scoreDelta?: number;
 };
 
+export type AICoverage = {
+  enabled: boolean;
+  imagesChecked: number;
+  linksChecked: number;
+  skipped: number;
+};
+
 export type Scan = {
   id: string;
   url: string;
@@ -50,6 +59,7 @@ export type Scan = {
   unverifiedLinks?: number;
   error?: string;
   stats: ScanStats;
+  ai?: AICoverage;
   changes?: Changes;
   findings: Finding[];
   createdAt: string;

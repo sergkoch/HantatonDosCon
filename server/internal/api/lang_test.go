@@ -29,7 +29,7 @@ func TestCreateScanStoresLanguage(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			body := strings.NewReader(`{"url":"https://example.com/","depth":1}`)
-			request := httptest.NewRequest(http.MethodPost, "/api/scans", body)
+			request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", body))
 			request.Header.Set("Content-Type", "application/json")
 			if test.header != "" {
 				request.Header.Set("X-Lang", test.header)
@@ -69,7 +69,7 @@ func TestErrorsFollowRequestLanguage(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
 			recorder := httptest.NewRecorder()
-			request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"not-a-url","depth":1}`))
+			request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"not-a-url","depth":1}`)))
 			request.Header.Set("Content-Type", "application/json")
 			if test.lang != "" {
 				request.Header.Set("X-Lang", test.lang)

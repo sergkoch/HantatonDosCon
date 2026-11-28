@@ -37,8 +37,12 @@ func WritePDF(w io.Writer, scan store.Scan, lang texts.Lang) error {
 	}
 
 	// Старые сканы могли сохранить находки вперемешку: сортируем копию.
-	findings := make([]store.Finding, len(scan.Findings))
-	copy(findings, scan.Findings)
+	findings := make([]store.Finding, 0, len(scan.Findings))
+	for _, finding := range scan.Findings {
+		if finding.Severity != store.SeverityOK {
+			findings = append(findings, finding)
+		}
+	}
 	store.SortBySeverity(findings)
 
 	pdf := fpdf.New("P", "mm", "A4", "")
@@ -94,6 +98,11 @@ func WritePDF(w io.Writer, scan store.Scan, lang texts.Lang) error {
 	pdf.Ln(3)
 	pdf.SetFont("go", "B", 13)
 	pdf.CellFormat(0, 7, texts.T(lang, texts.PDFFindings), "", 1, "L", false, 0, "")
+	pdf.SetFont("go", "", 9)
+	pdf.SetTextColor(120, 120, 120)
+	pdf.MultiCell(0, 4.5, texts.T(lang, texts.PDFProblemsOnly), "", "L", false)
+	pdf.SetTextColor(0, 0, 0)
+	pdf.Ln(1)
 
 	if len(findings) == 0 {
 		pdf.SetFont("go", "", 11)

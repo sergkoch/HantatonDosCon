@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
       - run: go mod tidy
       - run: git diff --exit-code
       - run: test -z "$(gofmt -l .)"

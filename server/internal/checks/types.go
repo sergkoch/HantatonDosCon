@@ -9,6 +9,7 @@ type Finding struct {
 	Element        string
 	Recommendation string
 	WCAG           string
+	Confidence     *float64
 }
 
 type Checker interface {

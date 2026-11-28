@@ -84,6 +84,9 @@ const (
 	PDFLangMissingRec     Key = "pdf.langMissing.rec"
 	AIMismatchTitle       Key = "ai.mismatch.title"
 	AIMismatchRec         Key = "ai.mismatch.rec"
+	AIMismatchUnsureTitle Key = "ai.mismatchUnsure.title"
+	AIMismatchUnsureRec   Key = "ai.mismatchUnsure.rec"
+	AIConfidence          Key = "ai.confidence"
 	AISuggestedAlt        Key = "ai.mismatch.suggested"
 	AIMatchTitle          Key = "ai.match.title"
 	AIMatchRec            Key = "ai.match.rec"
@@ -127,6 +130,7 @@ const (
 	PDFRemaining          Key = "pdf.remaining"
 	PDFDelta              Key = "pdf.delta"
 	PDFNoFindings         Key = "pdf.none"
+	PDFProblemsOnly       Key = "pdf.problemsOnly"
 	PDFType               Key = "pdf.type"
 	PDFElement            Key = "pdf.element"
 	PDFRecommendation     Key = "pdf.recommendation"
@@ -189,14 +193,17 @@ var catalog = map[Lang]map[Key]string{
 		PDFLangMissingTitle:  "PDF без языка документа",
 		PDFLangMissingRec:    "Укажите язык документа в свойствах PDF, чтобы скринридер выбрал правильное произношение.",
 
-		AIMismatchTitle: "alt не соответствует изображению",
-		AIMismatchRec:   "Модель считает, что alt не соответствует изображению.",
-		AISuggestedAlt:  " Предлагаемый alt: «%s».",
-		AIMatchTitle:    "alt соответствует изображению",
-		AIMatchRec:      "Модель подтвердила, что alt соответствует изображению.",
-		AILinkTitle:     "Текст ссылки не соответствует цели",
-		AILinkRec:       "Предлагаемый текст: «%s».",
-		AILinkRecPlain:  "Модель считает, что текст ссылки не соответствует цели. Проверьте формулировку вручную.",
+		AIMismatchTitle:       "alt не соответствует изображению",
+		AIMismatchRec:         "Модель считает, что alt не соответствует изображению.",
+		AIMismatchUnsureTitle: "ИИ не уверен, что alt не соответствует",
+		AIMismatchUnsureRec:   "Модель сомневается. Проверьте изображение и alt вручную.",
+		AIConfidence:          " Уверенность ИИ: %d%%.",
+		AISuggestedAlt:        " Предлагаемый alt: «%s».",
+		AIMatchTitle:          "alt соответствует изображению",
+		AIMatchRec:            "Модель подтвердила, что alt соответствует изображению.",
+		AILinkTitle:           "Текст ссылки не соответствует цели",
+		AILinkRec:             "Предлагаемый текст: «%s».",
+		AILinkRecPlain:        "Модель считает, что текст ссылки не соответствует цели. Проверьте формулировку вручную.",
 
 		ScanNoCrawler:   "краулер не настроен",
 		ScanCrawlFailed: "краулер завершился ошибкой",
@@ -237,6 +244,7 @@ var catalog = map[Lang]map[Key]string{
 		PDFRemaining:      "Осталось",
 		PDFDelta:          ", изменение оценки: %+d",
 		PDFNoFindings:     "Находок нет.",
+		PDFProblemsOnly:   "В список включены только критические находки и предупреждения.",
 		PDFType:           "Тип: ",
 		PDFElement:        "Элемент: ",
 		PDFRecommendation: "Рекомендация: ",
@@ -298,14 +306,17 @@ var catalog = map[Lang]map[Key]string{
 		PDFLangMissingTitle:  "PDF has no document language",
 		PDFLangMissingRec:    "Set the document language in the PDF properties so screen readers choose the right pronunciation.",
 
-		AIMismatchTitle: "alt does not match the image",
-		AIMismatchRec:   "The model reports that alt does not match the image.",
-		AISuggestedAlt:  " Suggested alt: “%s”.",
-		AIMatchTitle:    "alt matches the image",
-		AIMatchRec:      "The model confirmed that alt matches the image.",
-		AILinkTitle:     "Link text does not match its destination",
-		AILinkRec:       "Suggested text: “%s”.",
-		AILinkRecPlain:  "The model reports that the link text does not match its destination. Review the wording manually.",
+		AIMismatchTitle:       "alt does not match the image",
+		AIMismatchRec:         "The model reports that alt does not match the image.",
+		AIMismatchUnsureTitle: "AI is not sure the alt mismatches",
+		AIMismatchUnsureRec:   "The model is uncertain. Check the image and alt manually.",
+		AIConfidence:          " AI confidence: %d%%.",
+		AISuggestedAlt:        " Suggested alt: “%s”.",
+		AIMatchTitle:          "alt matches the image",
+		AIMatchRec:            "The model confirmed that alt matches the image.",
+		AILinkTitle:           "Link text does not match its destination",
+		AILinkRec:             "Suggested text: “%s”.",
+		AILinkRecPlain:        "The model reports that the link text does not match its destination. Review the wording manually.",
 
 		ScanNoCrawler:   "crawler is not configured",
 		ScanCrawlFailed: "crawler failed",
@@ -346,6 +357,7 @@ var catalog = map[Lang]map[Key]string{
 		PDFRemaining:      "Remaining",
 		PDFDelta:          ", score change: %+d",
 		PDFNoFindings:     "No findings.",
+		PDFProblemsOnly:   "Only critical findings and warnings are listed.",
 		PDFType:           "Type: ",
 		PDFElement:        "Element: ",
 		PDFRecommendation: "Recommendation: ",

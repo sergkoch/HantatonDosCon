@@ -30,7 +30,7 @@ func TestCreateScanAssignsVersion(t *testing.T) {
 
 	router := NewRouter(Options{Store: memory, Log: slog.Default()})
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"https://example.ru/","depth":1}`))
+	request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"https://example.ru/","depth":1}`)))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Client-ID", "browser-a")
 
@@ -67,7 +67,7 @@ func TestListScans(t *testing.T) {
 
 	router := NewRouter(Options{Store: memory, Log: slog.Default()})
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/scans?url=https://example.ru&limit=10", nil)
+	request := withClient(httptest.NewRequest(http.MethodGet, "/api/scans?url=https://example.ru&limit=10", nil))
 	request.Header.Set("X-Client-ID", "browser-a")
 
 	router.ServeHTTP(recorder, request)
@@ -85,7 +85,7 @@ func TestListScans(t *testing.T) {
 	}
 
 	foreign := httptest.NewRecorder()
-	foreignRequest := httptest.NewRequest(http.MethodGet, "/api/scans?limit=10", nil)
+	foreignRequest := withClient(httptest.NewRequest(http.MethodGet, "/api/scans?limit=10", nil))
 	foreignRequest.Header.Set("X-Client-ID", "browser-b")
 	router.ServeHTTP(foreign, foreignRequest)
 
@@ -121,7 +121,7 @@ func TestGetScanIsPrivateToOwner(t *testing.T) {
 	}{
 		{name: "owner", header: "browser-a", want: http.StatusOK},
 		{name: "stranger", header: "browser-b", want: http.StatusNotFound},
-		{name: "no identity", header: "", want: http.StatusNotFound},
+		{name: "no identity", header: "", want: http.StatusBadRequest},
 	}
 
 	for _, test := range cases {
@@ -150,16 +150,16 @@ func TestClientIDRejectsMalformedValue(t *testing.T) {
 
 	router.ServeHTTP(recorder, request)
 
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", recorder.Code)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", recorder.Code)
 	}
 
-	var scans []store.Scan
-	if err := json.Unmarshal(recorder.Body.Bytes(), &scans); err != nil {
+	var body map[string]string
+	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if len(scans) != 0 {
-		t.Fatalf("malformed identity must not see any history: %+v", scans)
+	if body["error"] != "invalid_input" {
+		t.Fatalf("expected invalid_input, got %+v", body)
 	}
 }
 
@@ -178,7 +178,7 @@ func TestClearHistory(t *testing.T) {
 	router := NewRouter(Options{Store: memory, Log: slog.Default()})
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodDelete, "/api/scans", nil)
+	request := withClient(httptest.NewRequest(http.MethodDelete, "/api/scans", nil))
 	request.Header.Set("X-Client-ID", "browser-a")
 	router.ServeHTTP(recorder, request)
 
@@ -197,7 +197,7 @@ func TestClearHistory(t *testing.T) {
 	}
 
 	empty := httptest.NewRecorder()
-	emptyRequest := httptest.NewRequest(http.MethodGet, "/api/scans", nil)
+	emptyRequest := withClient(httptest.NewRequest(http.MethodGet, "/api/scans", nil))
 	emptyRequest.Header.Set("X-Client-ID", "browser-a")
 	router.ServeHTTP(empty, emptyRequest)
 
@@ -210,7 +210,7 @@ func TestClearHistory(t *testing.T) {
 	}
 
 	foreign := httptest.NewRecorder()
-	foreignRequest := httptest.NewRequest(http.MethodGet, "/api/scans", nil)
+	foreignRequest := withClient(httptest.NewRequest(http.MethodGet, "/api/scans", nil))
 	foreignRequest.Header.Set("X-Client-ID", "browser-b")
 	router.ServeHTTP(foreign, foreignRequest)
 

@@ -49,7 +49,7 @@ export function openCookieConsent(): void {
   visible = true;
 }
 
-/** Закрыть карточку без сохранения согласия. */
+/** Свернуть карточку без сохранения согласия. */
 export function closeCookieConsent(): void {
   visible = false;
 }

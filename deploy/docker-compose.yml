@@ -1,12 +1,13 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: accessible
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -32,6 +33,7 @@ services:
     build:
       context: ../server
     image: accessible-api
+    restart: unless-stopped
     environment:
       LISTEN: ":8080"
       DATABASE_URL: postgres://postgres:postgres@db:5432/accessible?sslmode=disable
@@ -41,7 +43,7 @@ services:
       AI_VISION_MODEL: ${AI_VISION_MODEL:-}
       SCAN_ALLOWED_HOSTS: ${SCAN_ALLOWED_HOSTS:-demo,not-domain.ru,www.not-domain.ru}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
-      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://not-domain.ru}
     # Внутри сервера нет hairpin NAT: домен резолвится в публичный IP,
     # до которого контейнер не дотянется. Через шлюз контейнер попадает
     # в nginx на хосте, и скан собственного сайта работает.
@@ -58,6 +60,7 @@ services:
 
   demo:
     image: nginx:1.27-alpine
+    restart: unless-stopped
     volumes:
       - ../demo-site:/usr/share/nginx/html:ro
     expose:
@@ -66,8 +69,10 @@ services:
   web:
     build:
       context: ../client
+    restart: unless-stopped
     depends_on:
       - api
+      - demo
     ports:
       - "8080:80"
 

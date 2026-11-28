@@ -4,6 +4,9 @@ package store
 // A finding is considered the same when its code and element match, or when
 // code is empty and kind, title and element match.
 func Diff(previous, current []Finding) *Changes {
+	previous = withoutOK(previous)
+	current = withoutOK(current)
+
 	key := func(f Finding) string {
 		if f.Code != "" {
 			return f.Code + "\x00" + f.Element
@@ -43,4 +46,16 @@ func Diff(previous, current []Finding) *Changes {
 	}
 
 	return &Changes{Added: added, Fixed: fixed, Remaining: remaining}
+}
+
+// withoutOK убирает находки «в порядке»: diff и счётчик remaining относятся
+// только к проблемам, как и таблица в отчёте.
+func withoutOK(findings []Finding) []Finding {
+	result := make([]Finding, 0, len(findings))
+	for _, finding := range findings {
+		if finding.Severity != SeverityOK {
+			result = append(result, finding)
+		}
+	}
+	return result
 }

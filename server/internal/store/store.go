@@ -34,6 +34,8 @@ type Finding struct {
 	Element        string   `json:"element"`
 	Recommendation string   `json:"recommendation"`
 	WCAG           string   `json:"wcag"`
+	// Confidence is the AI confidence for semantic findings (0..1).
+	Confidence *float64 `json:"confidence,omitempty"`
 	// TitleAlt and RecommendationAlt hold the same text in the other supported
 	// language. The API exposes them, so the report can switch language without
 	// rescanning.
@@ -55,26 +57,35 @@ type Changes struct {
 	ScoreDelta *int      `json:"scoreDelta,omitempty"`
 }
 
+// AICoverage records how much of the semantic check the AI actually did.
+type AICoverage struct {
+	Enabled       bool `json:"enabled"`
+	ImagesChecked int  `json:"imagesChecked"`
+	LinksChecked  int  `json:"linksChecked"`
+	Skipped       int  `json:"skipped"`
+}
+
 type Scan struct {
 	ID string `json:"id"`
 	// Owner is the anonymous client that started the scan. It is never exposed
 	// in API responses: history and reports stay private to that client.
-	Owner           string    `json:"-"`
-	URL             string    `json:"url"`
-	Depth           int       `json:"depth"`
-	Status          Status    `json:"status"`
-	Lang            string    `json:"lang"`
-	Version         int       `json:"version"`
-	PreviousID      string    `json:"previousId,omitempty"`
-	Score           *int      `json:"score"`
-	Pages           int       `json:"pages"`
-	CheckedLinks    int       `json:"checkedLinks"`
-	UnverifiedLinks int       `json:"unverifiedLinks"`
-	Error           string    `json:"error,omitempty"`
-	Stats           Stats     `json:"stats"`
-	Changes         *Changes  `json:"changes,omitempty"`
-	Findings        []Finding `json:"findings"`
-	CreatedAt       time.Time `json:"createdAt"`
+	Owner           string      `json:"-"`
+	URL             string      `json:"url"`
+	Depth           int         `json:"depth"`
+	Status          Status      `json:"status"`
+	Lang            string      `json:"lang"`
+	Version         int         `json:"version"`
+	PreviousID      string      `json:"previousId,omitempty"`
+	Score           *int        `json:"score"`
+	Pages           int         `json:"pages"`
+	CheckedLinks    int         `json:"checkedLinks"`
+	UnverifiedLinks int         `json:"unverifiedLinks"`
+	Error           string      `json:"error,omitempty"`
+	Stats           Stats       `json:"stats"`
+	AI              *AICoverage `json:"ai,omitempty"`
+	Changes         *Changes    `json:"changes,omitempty"`
+	Findings        []Finding   `json:"findings"`
+	CreatedAt       time.Time   `json:"createdAt"`
 }
 
 type Store interface {
@@ -82,7 +93,8 @@ type Store interface {
 	Get(ctx context.Context, id string) (Scan, error)
 	Update(ctx context.Context, scan Scan) error
 	// List returns scans of one owner, newest first. An empty targetURL means
-	// all URLs; an empty owner means scans created without a client identity.
+	// all URLs. The owner is always required by the API, so an empty owner
+	// never exposes a shared history.
 	List(ctx context.Context, targetURL, owner string, limit int) ([]Scan, error)
 	// LatestDone returns the most recent completed scan of a URL for one owner.
 	LatestDone(ctx context.Context, targetURL, owner string) (Scan, error)

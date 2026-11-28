@@ -11,6 +11,7 @@ import (
 	"accessible-content/server/internal/pdf"
 	"accessible-content/server/internal/safehttp"
 	"accessible-content/server/internal/store"
+	"accessible-content/server/internal/texts"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -80,14 +81,39 @@ func NewRouter(opts Options) *gin.Engine {
 
 	api := router.Group("/api")
 	api.GET("/health", h.health)
-	api.POST("/scans", limitBody(maxRequestBodyBytes), rateLimit(limiter), h.createScan)
-	api.GET("/scans", h.listScans)
-	api.DELETE("/scans", h.clearHistory)
-	api.GET("/scans/:id", h.getScan)
-	api.GET("/scans/:id/gate", h.gate)
-	api.GET("/scans/:id/pdf", h.downloadPDF)
+	api.POST("/scans", requireClientID(), limitBody(maxRequestBodyBytes), rateLimit(limiter), h.createScan)
+	api.GET("/scans", requireClientID(), privateResponseHeaders(), h.listScans)
+	api.DELETE("/scans", requireClientID(), privateResponseHeaders(), h.clearHistory)
+	api.GET("/scans/:id", requireClientID(), privateResponseHeaders(), h.getScan)
+	api.GET("/scans/:id/gate", requireClientID(), privateResponseHeaders(), h.gate)
+	api.GET("/scans/:id/pdf", requireClientID(), privateResponseHeaders(), h.downloadPDF)
 
 	return router
+}
+
+// requireClientID закрывает публичное «пустое» пространство: без анонимного
+// идентификатора браузера история и отчёты недоступны.
+func requireClientID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if clientID(c) == "" {
+			lang := requestLang(c)
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error":  "invalid_input",
+				"detail": texts.T(lang, texts.ErrClientID),
+			})
+			return
+		}
+		c.Next()
+	}
+}
+
+// privateResponseHeaders запрещает кэшировать приватные отчёты и историю.
+func privateResponseHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Cache-Control", "no-store")
+		c.Header("Vary", "X-Client-ID, X-Lang")
+		c.Next()
+	}
 }
 
 func requestID() gin.HandlerFunc {
@@ -100,13 +126,13 @@ func requestID() gin.HandlerFunc {
 func cors() gin.HandlerFunc {
 	origin := os.Getenv("CORS_ORIGIN")
 	if origin == "" {
-		origin = "*" // development default
+		origin = "https://not-domain.ru"
 	}
 
 	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", origin)
 		c.Header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Client-ID")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Client-ID, X-Lang")
 
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)

@@ -53,16 +53,24 @@ func (p *Postgres) Create(ctx context.Context, scan Scan) error {
 		}
 	}
 
+	var aiJSON []byte
+	if scan.AI != nil {
+		aiJSON, err = json.Marshal(scan.AI)
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err = tx.Exec(ctx, `
 		INSERT INTO scans (
 			id, owner_id, url, depth, status, lang, version, previous_id, score,
 			pages_count, checked_links, unverified_links, error,
-			stats, changes, created_at, finished_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+			stats, changes, ai, created_at, finished_at
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
 		scan.ID, scan.Owner, scan.URL, scan.Depth, string(scan.Status), scan.Lang, scan.Version,
 		nullableUUID(scan.PreviousID), scan.Score, scan.Pages,
 		scan.CheckedLinks, scan.UnverifiedLinks, scan.Error,
-		statsJSON, changesJSON, scan.CreatedAt, finishedAt(scan),
+		statsJSON, changesJSON, aiJSON, scan.CreatedAt, finishedAt(scan),
 	)
 	if err != nil {
 		return err
@@ -110,15 +118,23 @@ func (p *Postgres) Update(ctx context.Context, scan Scan) error {
 		}
 	}
 
+	var aiJSON []byte
+	if scan.AI != nil {
+		aiJSON, err = json.Marshal(scan.AI)
+		if err != nil {
+			return err
+		}
+	}
+
 	tag, err := tx.Exec(ctx, `
 		UPDATE scans SET
 			status = $2, version = $3, previous_id = $4, score = $5,
 			pages_count = $6, checked_links = $7, unverified_links = $8,
-			error = $9, stats = $10, changes = $11, finished_at = $12
+			error = $9, stats = $10, changes = $11, ai = $12, finished_at = $13
 		WHERE id = $1`,
 		scan.ID, string(scan.Status), scan.Version, nullableUUID(scan.PreviousID),
 		scan.Score, scan.Pages, scan.CheckedLinks, scan.UnverifiedLinks,
-		scan.Error, statsJSON, changesJSON, finishedAt(scan),
+		scan.Error, statsJSON, changesJSON, aiJSON, finishedAt(scan),
 	)
 	if err != nil {
 		return err
@@ -145,7 +161,7 @@ func (p *Postgres) List(ctx context.Context, targetURL, owner string, limit int)
 	rows, err := p.pool.Query(ctx, `
 		SELECT id::text, owner_id, url, depth, status, lang, version, COALESCE(previous_id::text, ''),
 		       score, pages_count, checked_links, unverified_links, error,
-		       stats, changes, created_at
+		       stats, changes, ai, created_at
 		FROM scans
 		-- Пустой owner_id — это сканы без X-Client-ID. Он не должен видеть
 		-- чужие сканы, поэтому сравниваем владельца всегда, а не только
@@ -210,7 +226,7 @@ func (p *Postgres) scanBy(ctx context.Context, where string, args ...any) (Scan,
 	row := p.pool.QueryRow(ctx, `
 		SELECT id::text, owner_id, url, depth, status, lang, version, COALESCE(previous_id::text, ''),
 		       score, pages_count, checked_links, unverified_links, error,
-		       stats, changes, created_at
+		       stats, changes, ai, created_at
 		FROM scans `+where, args...)
 
 	scan, err := scanRow(row)
@@ -232,12 +248,13 @@ func scanRow(row rowScanner) (Scan, error) {
 		previousID  string
 		statsJSON   []byte
 		changesJSON []byte
+		aiJSON      []byte
 	)
 
 	err := row.Scan(
 		&scan.ID, &scan.Owner, &scan.URL, &scan.Depth, &status, &scan.Lang, &scan.Version, &previousID,
 		&scan.Score, &scan.Pages, &scan.CheckedLinks, &scan.UnverifiedLinks,
-		&scan.Error, &statsJSON, &changesJSON, &scan.CreatedAt,
+		&scan.Error, &statsJSON, &changesJSON, &aiJSON, &scan.CreatedAt,
 	)
 	if err != nil {
 		return Scan{}, err
@@ -255,6 +272,11 @@ func scanRow(row rowScanner) (Scan, error) {
 			return Scan{}, err
 		}
 	}
+	if len(aiJSON) > 0 {
+		if err := json.Unmarshal(aiJSON, &scan.AI); err != nil {
+			return Scan{}, err
+		}
+	}
 
 	return scan, nil
 }
@@ -262,7 +284,7 @@ func scanRow(row rowScanner) (Scan, error) {
 func (p *Postgres) findingsBy(ctx context.Context, scanID string) ([]Finding, error) {
 	rows, err := p.pool.Query(ctx, `
 		SELECT id::text, code, kind, severity, title, element, recommendation, wcag,
-		       title_alt, recommendation_alt
+		       confidence, title_alt, recommendation_alt
 		FROM findings
 		WHERE scan_id = $1
 		-- Стабильный порядок: критичные → предупреждения → «в порядке»,
@@ -284,7 +306,7 @@ func (p *Postgres) findingsBy(ctx context.Context, scanID string) ([]Finding, er
 		if err := rows.Scan(
 			&finding.ID, &finding.Code, &finding.Kind, &severity,
 			&finding.Title, &finding.Element, &finding.Recommendation, &finding.WCAG,
-			&finding.TitleAlt, &finding.RecommendationAlt,
+			&finding.Confidence, &finding.TitleAlt, &finding.RecommendationAlt,
 		); err != nil {
 			return nil, err
 		}
@@ -304,11 +326,11 @@ func insertFindings(ctx context.Context, tx pgx.Tx, scanID string, findings []Fi
 		_, err := tx.Exec(ctx, `
 			INSERT INTO findings (
 				id, scan_id, kind, severity, code, title, element,
-				recommendation, wcag, created_at, title_alt, recommendation_alt
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+				recommendation, wcag, created_at, confidence, title_alt, recommendation_alt
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
 			uuid.NewString(), scanID, finding.Kind, string(finding.Severity),
 			finding.Code, finding.Title, finding.Element, finding.Recommendation,
-			finding.WCAG, createdAt, finding.TitleAlt, finding.RecommendationAlt,
+			finding.WCAG, createdAt, finding.Confidence, finding.TitleAlt, finding.RecommendationAlt,
 		)
 		if err != nil {
 			return err

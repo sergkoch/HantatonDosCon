@@ -156,6 +156,11 @@ func cloneScan(scan Scan) Scan {
 		scan.Changes = &changes
 	}
 
+	if scan.AI != nil {
+		ai := *scan.AI
+		scan.AI = &ai
+	}
+
 	return scan
 }
 

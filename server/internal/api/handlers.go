@@ -20,6 +20,7 @@ import (
 	"accessible-content/server/internal/store"
 	"accessible-content/server/internal/texts"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -316,15 +317,21 @@ func (h *handler) runScan(initial store.Scan) {
 	ruFindings = append(ruFindings, pdfRU...)
 	enFindings = append(enFindings, pdfEN...)
 
+	aiCoverage := &store.AICoverage{Enabled: h.aiClient != nil}
 	if h.aiClient != nil {
-		imagesRU, imagesEN := h.checkImages(ctx, pages, lang)
+		imagesRU, imagesEN, imagesChecked, imagesSkipped := h.checkImages(ctx, pages, lang)
 		ruFindings = append(ruFindings, imagesRU...)
 		enFindings = append(enFindings, imagesEN...)
+		aiCoverage.ImagesChecked += imagesChecked
+		aiCoverage.Skipped += imagesSkipped
 
-		aiLinksRU, aiLinksEN := h.checkAILinks(ctx, pages, lang)
+		aiLinksRU, aiLinksEN, linksChecked, linksSkipped := h.checkAILinks(ctx, pages, lang)
 		ruFindings = append(ruFindings, aiLinksRU...)
 		enFindings = append(enFindings, aiLinksEN...)
+		aiCoverage.LinksChecked += linksChecked
+		aiCoverage.Skipped += linksSkipped
 	}
+	scan.AI = aiCoverage
 
 	linkResults := checks.CheckLinks(ctx, h.httpClient, links, 50)
 	brokenRU, unverifiedLinks := checks.BrokenLinkFindings(linkResults, texts.RU)
@@ -538,26 +545,29 @@ func pdfFindings(result pdf.Result, element string, lang texts.Lang) []checks.Fi
 }
 
 const (
-	maxImagesPerScan = 6
-	maxImageSize     = 5 << 20
+	maxImagesPerScan  = 6
+	maxImageSize      = 5 << 20
+	aiImageConfidence = 0.6
 )
 
 // checkImages вызывает vision-модель один раз на картинку и возвращает
 // находки на двух языках. Подробности модели (reason, suggested alt) попадают
 // только в язык, на котором отвечала модель.
-func (h *handler) checkImages(ctx context.Context, pages []crawler.Page, aiLang texts.Lang) ([]checks.Finding, []checks.Finding) {
+func (h *handler) checkImages(ctx context.Context, pages []crawler.Page, aiLang texts.Lang) ([]checks.Finding, []checks.Finding, int, int) {
 	if h.aiClient == nil || !h.aiVision {
-		return nil, nil
+		return nil, nil, 0, 0
 	}
 
 	ru := make([]checks.Finding, 0)
 	en := make([]checks.Finding, 0)
 	seen := make(map[string]struct{})
+	checked := 0
+	skipped := 0
 
 	for _, page := range pages {
 		for _, image := range page.Images {
 			if len(seen) >= maxImagesPerScan {
-				return ru, en
+				return ru, en, checked, skipped
 			}
 			if !image.HasAlt || strings.TrimSpace(image.Alt) == "" {
 				continue
@@ -573,48 +583,50 @@ func (h *handler) checkImages(ctx context.Context, pages []crawler.Page, aiLang 
 			}
 			seen[src] = struct{}{}
 
-			verdict, reason, suggested, element, ok := h.analyzeImage(ctx, page.URL, image, aiLang)
+			verdict, reason, suggested, element, confidence, ok := h.analyzeImage(ctx, page.URL, image, aiLang)
 			if !ok {
+				skipped++
 				continue
 			}
+			checked++
 
-			ru = append(ru, imageFindings(verdict, reason, suggested, element, texts.RU, aiLang == texts.RU)...)
-			en = append(en, imageFindings(verdict, reason, suggested, element, texts.EN, aiLang == texts.EN)...)
+			ru = append(ru, imageFindings(verdict, reason, suggested, element, confidence, texts.RU, aiLang == texts.RU)...)
+			en = append(en, imageFindings(verdict, reason, suggested, element, confidence, texts.EN, aiLang == texts.EN)...)
 		}
 	}
 
-	return ru, en
+	return ru, en, checked, skipped
 }
 
-func (h *handler) analyzeImage(ctx context.Context, pageURL string, image crawler.Image, lang texts.Lang) (string, string, string, string, bool) {
+func (h *handler) analyzeImage(ctx context.Context, pageURL string, image crawler.Image, lang texts.Lang) (string, string, string, string, float64, bool) {
 	requestCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	request, err := http.NewRequestWithContext(requestCtx, http.MethodGet, image.Src, nil)
 	if err != nil {
-		return "", "", "", "", false
+		return "", "", "", "", 0, false
 	}
 
 	response, err := h.pdfClient.Do(request)
 	if err != nil {
 		h.log.Warn("image download failed", "src", image.Src, "error", err)
-		return "", "", "", "", false
+		return "", "", "", "", 0, false
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return "", "", "", "", false
+		return "", "", "", "", 0, false
 	}
 
 	contentType := strings.TrimSpace(strings.Split(response.Header.Get("Content-Type"), ";")[0])
 	if !strings.HasPrefix(contentType, "image/") || contentType == "image/svg+xml" {
-		return "", "", "", "", false
+		return "", "", "", "", 0, false
 	}
 
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxImageSize+1))
 	if err != nil || len(data) == 0 || len(data) > maxImageSize {
 		h.log.Warn("image skipped", "src", image.Src, "size", len(data))
-		return "", "", "", "", false
+		return "", "", "", "", 0, false
 	}
 
 	result, err := h.aiClient.CheckImage(requestCtx, ai.ImageRequest{
@@ -626,23 +638,35 @@ func (h *handler) analyzeImage(ctx context.Context, pageURL string, image crawle
 	})
 	if err != nil {
 		h.log.Warn("ai image check failed", "src", image.Src, "error", err)
-		return "", "", "", "", false
+		return "", "", "", "", 0, false
 	}
 
 	verdict := strings.ToLower(strings.TrimSpace(result.Verdict))
 	if verdict != "mismatch" && verdict != "match" {
-		return "", "", "", "", false
+		return "", "", "", "", 0, false
 	}
 
 	element := fmt.Sprintf(`<img src="%s" alt="%s">`, image.Src, image.Alt)
 
-	return verdict, strings.TrimSpace(result.Reason), strings.TrimSpace(result.SuggestedAlt), element, true
+	return verdict, strings.TrimSpace(result.Reason), strings.TrimSpace(result.SuggestedAlt), element, result.Confidence, true
 }
 
-func imageFindings(verdict, reason, suggested, element string, lang texts.Lang, detailed bool) []checks.Finding {
+func imageFindings(verdict, reason, suggested, element string, confidence float64, lang texts.Lang, detailed bool) []checks.Finding {
 	switch verdict {
 	case "mismatch":
-		recommendation := texts.T(lang, texts.AIMismatchRec)
+		unsure := confidence < aiImageConfidence
+		titleKey := texts.AIMismatchTitle
+		recKey := texts.AIMismatchRec
+		code := "IMG_ALT_AI_MISMATCH"
+		severity := "critical"
+		if unsure {
+			titleKey = texts.AIMismatchUnsureTitle
+			recKey = texts.AIMismatchUnsureRec
+			code = "IMG_ALT_AI_UNCERTAIN"
+			severity = "warning"
+		}
+
+		recommendation := texts.T(lang, recKey) + texts.Tf(lang, texts.AIConfidence, confidencePercent(confidence))
 		if detailed {
 			if reason != "" {
 				recommendation += " " + reason
@@ -653,15 +677,21 @@ func imageFindings(verdict, reason, suggested, element string, lang texts.Lang, 
 		}
 
 		return []checks.Finding{{
-			Code:           "IMG_ALT_AI_MISMATCH",
-			Severity:       "critical",
-			Title:          texts.T(lang, texts.AIMismatchTitle),
+			Code:           code,
+			Severity:       severity,
+			Title:          texts.T(lang, titleKey),
 			Element:        element,
 			Recommendation: recommendation,
 			WCAG:           "1.1.1",
+			Confidence:     confidencePtr(confidence),
 		}}
 	case "match":
-		recommendation := texts.T(lang, texts.AIMatchRec)
+		// Низкая уверенность в совпадении — не повод ставить «в порядке».
+		if confidence < aiImageConfidence {
+			return nil
+		}
+
+		recommendation := texts.T(lang, texts.AIMatchRec) + texts.Tf(lang, texts.AIConfidence, confidencePercent(confidence))
 		if detailed && reason != "" {
 			recommendation += " " + reason
 		}
@@ -673,16 +703,34 @@ func imageFindings(verdict, reason, suggested, element string, lang texts.Lang, 
 			Element:        element,
 			Recommendation: recommendation,
 			WCAG:           "1.1.1",
+			Confidence:     confidencePtr(confidence),
 		}}
 	default:
 		return nil
 	}
 }
 
-func (h *handler) checkAILinks(ctx context.Context, pages []crawler.Page, aiLang texts.Lang) ([]checks.Finding, []checks.Finding) {
+func confidencePercent(confidence float64) int {
+	if confidence < 0 {
+		return 0
+	}
+	if confidence > 1 {
+		return 100
+	}
+	return int(confidence*100 + 0.5)
+}
+
+func confidencePtr(confidence float64) *float64 {
+	value := confidence
+	return &value
+}
+
+func (h *handler) checkAILinks(ctx context.Context, pages []crawler.Page, aiLang texts.Lang) ([]checks.Finding, []checks.Finding, int, int) {
 	const budget = 8
 	seen := make(map[string]struct{})
 	left := budget
+	checked := 0
+	skipped := 0
 
 	ru := make([]checks.Finding, 0)
 	en := make([]checks.Finding, 0)
@@ -694,7 +742,7 @@ func (h *handler) checkAILinks(ctx context.Context, pages []crawler.Page, aiLang
 
 		for _, link := range links {
 			if left <= 0 {
-				return ru, en
+				return ru, en, checked, skipped
 			}
 			if !checks.IsGenericLinkText(link.Text) {
 				continue
@@ -705,29 +753,93 @@ func (h *handler) checkAILinks(ctx context.Context, pages []crawler.Page, aiLang
 			seen[link.Href] = struct{}{}
 			left--
 
-			res, err := h.aiClient.CheckLink(ctx, ai.LinkRequest{Text: link.Text, URL: link.Href, Language: string(aiLang)})
+			targetTitle, targetText := h.fetchLinkTarget(ctx, link.Href)
+			res, err := h.aiClient.CheckLink(ctx, ai.LinkRequest{
+				Text:        link.Text,
+				URL:         link.Href,
+				TargetTitle: targetTitle,
+				TargetText:  targetText,
+				Language:    string(aiLang),
+			})
 			if err != nil {
 				h.log.Warn("ai link check failed", "href", link.Href, "error", err)
+				skipped++
 				continue
 			}
-			if res.SuggestedText == "" {
+			checked++
+
+			// Если модель считает текст понятным и соответствующим цели,
+			// альтернатива из suggested_text не должна превращаться в находку.
+			if !shouldReportLink(res) {
+				if res.Confidence < aiLinkConfidence {
+					skipped++
+				}
 				continue
 			}
 
 			element := fmt.Sprintf(`<a href="%s">%s</a>`, link.Href, link.Text)
-			ru = append(ru, linkAIFinding(res.SuggestedText, element, texts.RU, aiLang == texts.RU))
-			en = append(en, linkAIFinding(res.SuggestedText, element, texts.EN, aiLang == texts.EN))
+			ru = append(ru, linkAIFinding(res, element, texts.RU, aiLang == texts.RU))
+			en = append(en, linkAIFinding(res, element, texts.EN, aiLang == texts.EN))
 		}
 	}
 
-	return ru, en
+	return ru, en, checked, skipped
 }
 
-func linkAIFinding(suggested, element string, lang texts.Lang, detailed bool) checks.Finding {
-	recommendation := texts.T(lang, texts.AILinkRecPlain)
-	if detailed {
-		recommendation = texts.Tf(lang, texts.AILinkRec, suggested)
+const aiLinkConfidence = 0.5
+
+func shouldReportLink(res ai.LinkResult) bool {
+	if res.Matches && res.Meaningful {
+		return false
 	}
+	return res.Confidence >= aiLinkConfidence
+}
+
+func (h *handler) fetchLinkTarget(ctx context.Context, href string) (string, string) {
+	requestCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(requestCtx, http.MethodGet, href, nil)
+	if err != nil {
+		return "", ""
+	}
+
+	response, err := h.httpClient.Do(request)
+	if err != nil {
+		return "", ""
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return "", ""
+	}
+
+	data, err := io.ReadAll(io.LimitReader(response.Body, 64<<10))
+	if err != nil || len(data) == 0 {
+		return "", ""
+	}
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(data))
+	if err != nil {
+		return "", ""
+	}
+
+	title := strings.TrimSpace(doc.Find("title").First().Text())
+	text := strings.TrimSpace(doc.Find("p").First().Text())
+	runes := []rune(text)
+	if len(runes) > 240 {
+		text = string(runes[:240]) + "…"
+	}
+
+	return title, text
+}
+
+func linkAIFinding(res ai.LinkResult, element string, lang texts.Lang, detailed bool) checks.Finding {
+	recommendation := texts.T(lang, texts.AILinkRecPlain)
+	if detailed && strings.TrimSpace(res.SuggestedText) != "" {
+		recommendation = texts.Tf(lang, texts.AILinkRec, strings.TrimSpace(res.SuggestedText))
+	}
+	recommendation += texts.Tf(lang, texts.AIConfidence, confidencePercent(res.Confidence))
 
 	return checks.Finding{
 		Code:           "LINK_TEXT_MISMATCH",
@@ -736,6 +848,7 @@ func linkAIFinding(suggested, element string, lang texts.Lang, detailed bool) ch
 		Element:        element,
 		Recommendation: recommendation,
 		WCAG:           "2.4.4",
+		Confidence:     confidencePtr(res.Confidence),
 	}
 }
 
@@ -768,6 +881,7 @@ func toStoreFindings(primary, secondary []checks.Finding) []store.Finding {
 			Element:        f.Element,
 			Recommendation: f.Recommendation,
 			WCAG:           f.WCAG,
+			Confidence:     f.Confidence,
 		}
 		if i < len(secondary) {
 			item.TitleAlt = secondary[i].Title
