@@ -74,8 +74,6 @@ const ru = {
   "home.problemStat2": "2,2 млрд",
   "home.problemStat2Label": "людей живут с нарушениями зрения",
   "home.problemSource": "Источники:",
-  "home.evidence":
-    "Демо-сайт: 15 находок за 4,4 секунды, оценка 20 из 100.",
   "home.valueEyebrow": "Что вы получаете",
   "home.valueTitle": "Не просто список ошибок",
   "home.valueHistory": "История и diff: исправили → проверили → увидели изменения.",
@@ -324,7 +322,6 @@ const en: Record<MessageKey, string> = {
   "home.problemStat2": "2.2 bn",
   "home.problemStat2Label": "people live with vision impairment",
   "home.problemSource": "Sources:",
-  "home.evidence": "Demo site: 15 findings in 4.4 seconds, score 20 out of 100.",
   "home.valueEyebrow": "What you get",
   "home.valueTitle": "More than a list of errors",
   "home.valueHistory": "History and diff: fixed → checked → saw the changes.",
