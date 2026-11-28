@@ -64,7 +64,7 @@
 
 - `task/review-28-11` — правки по ревью 28.11.2026: P0/P1/P2 (приватность,
   ИИ, лендинг, демо, diff, история, доступность, деплой, документация).
-  PR открывается от `sergkoch` или `shrekichevsk`.
+  PR [#99](https://github.com/sergkoch/HantatonDosCon/pull/99) от `sergkoch`.
 
 ## Сервер
 
