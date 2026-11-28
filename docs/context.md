@@ -3,14 +3,14 @@
 Долговременные факты, которые нельзя потерять между сессиями. Загружается
 автоматически. Статус задач — в `docs/state.md`.
 
-Обновлено: 25.11.2026.
+Обновлено: 28.11.2026.
 
 ---
 
 ## 1. GitHub
 
 - Репозиторий: `https://github.com/sergkoch/HantatonDosCon`
-- Основная ветка: `main`, на 25.11.2026 — `aa39948`.
+- Основная ветка: `main`, на 28.11.2026 — `8983af6`.
 - В `main` только через PR и зелёный CI.
 - Ветка задачи: `task/<slug>`. Для PR создаётся видимый алиас `team/<slug>`.
 
@@ -37,17 +37,16 @@
 
 `#68` robots/SEO, `#69` PDF-проверки, `#70` безопасность, `#73` история и diff,
 `#74` PDF-отчёт, `#76` автооткрытие отчёта, `#77` новый экран отчёта,
-`#78` ИИ-проверка картинок.
-
-Не влито: `team/review-fixes` (правки по ревью), `team/agent-context` (этот файл).
+`#78` ИИ-проверка картинок, `#95` правки ревью 27.11, `#96` UI-полировка,
+`#97` язык отчёта, `#98` финальная полировка.
 
 ---
 
 ## 2. Сервер
 
-- Хост: `84.54.57.218`, пользователь `andrey`.
+- Хост: `84.54.57.218`, пользователь `serega`.
 - Приватный IP `10.0.0.5`, исходящий IP совпадает с публичным.
-- Ключ: `C:\Users\Андрей\Downloads\id_ed25519_hackathon`.
+- Ключ: `~/.ssh/id_ed25519_hackathon`.
 - ОС: Ubuntu 24.04, KVM, провайдер **Cloud.ru**.
 - Репозиторий: `/opt/accessible-content`, владелец `serega`.
 - Git на сервере — только от `serega`: `sudo -u serega git ...`.
@@ -63,7 +62,7 @@
 ### Обновление сервера
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_hackathon andrey@84.54.57.218
+ssh -i ~/.ssh/id_ed25519_hackathon serega@84.54.57.218
 cd /opt/accessible-content
 sudo -u serega git fetch origin main
 sudo -u serega git reset --hard origin/main
@@ -143,18 +142,11 @@ sudo systemctl disable --now cloudflared-quick
 
 ## 6. Локальная работа
 
-Главная рабочая папка: `C:\Users\Андрей\Desktop\accessible-content`.
+Главная рабочая папка: `C:\Users\l123r\Downloads\accessible-content\accessible-content`.
 
-Дополнительные worktree (не удалять без разбора):
-
-| Папка | Ветка | Что внутри |
-| --- | --- | --- |
-| `ac-polish` | `team/review-fixes` | правки по ревью, коммит `b88d4b7` |
-| `ac-history` | merged | история и версии |
-| `ac-pdf` | merged | PDF-экспорт |
-| `accessible-content-t26` | merged | безопасность |
-| `ac-prod` | `team/prod-deploy` | прод-compose и Caddy, не влито |
-| `ac-vision` | merged | ИИ-проверка картинок |
+Старые worktree (`ac-polish`, `ac-history`, `ac-pdf`, `accessible-content-t26`,
+`ac-prod`, `ac-vision`) не удалять без разбора: их ветки уже влиты в `main`,
+кроме исторических локальных копий.
 
 Документ ревью: `C:\Users\Андрей\Desktop\Чекпоинт_Доступный_контент_23-11-2026`,
 читаемые копии — `%TEMP%\checkpoint-doc\00.txt`–`07.txt`.
@@ -180,9 +172,9 @@ sudo systemctl disable --now cloudflared-quick
 Проект «Доступный контент»: проверка доступности сайтов (alt, ссылки, формы,
 таблицы, заголовки, PDF) + отчёт HTML/CSV/PDF + история и diff.
 Стек: Svelte 5 + Go/Gin + PostgreSQL + Docker Compose.
-Репозиторий sergkoch/HantatonDosCon, main aa39948, PR только через ветку.
+Репозиторий sergkoch/HantatonDosCon, main 8983af6, PR только через ветку.
 Аккаунт heisenbaf в теневом бане: PR открывает sergkoch или shrekichevsk.
-Сервер 84.54.57.218, пользователь andrey, /opt/accessible-content,
+Сервер 84.54.57.218, пользователь serega, /opt/accessible-content,
 git от serega, docker через sudo, env в deploy/.env.
 Домен not-domain.ru работает: http и https (Let's Encrypt, до 23.02.2027), www тоже.
 Сайт открыт снаружи, туннель cloudflared-quick больше не нужен.

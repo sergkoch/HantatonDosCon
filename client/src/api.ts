@@ -18,11 +18,11 @@ function requestHeaders(extra: Record<string, string> = {}): Record<string, stri
 async function readError(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { detail?: string; error?: string };
-    const key = body.error ? errorKeys[body.error] : undefined;
-    if (key) {
-      return t(key);
+    if (body.detail) {
+      return body.detail;
     }
-    return body.detail ?? t("error.http", { status: response.status });
+    const key = body.error ? errorKeys[body.error] : undefined;
+    return key ? t(key) : t("error.http", { status: response.status });
   } catch {
     return t("error.http", { status: response.status });
   }

@@ -23,7 +23,8 @@ function readInitial(): Locale {
   return navigator.language?.toLowerCase().startsWith("en") ? "en" : "ru";
 }
 
-let current = $state<Locale>(readInitial());
+const initialLocale = readInitial();
+let current = $state<Locale>(initialLocale);
 
 function applyLocale(locale: Locale): void {
   if (typeof document !== "undefined") {
@@ -31,7 +32,7 @@ function applyLocale(locale: Locale): void {
   }
 }
 
-applyLocale(current);
+applyLocale(initialLocale);
 
 export function getLocale(): Locale {
   return current;

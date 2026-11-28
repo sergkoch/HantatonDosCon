@@ -36,7 +36,7 @@ func TestCreateScanRejectsPrivateTargets(t *testing.T) {
 
 	for _, target := range []string{"http://private.test/", "http://127.0.0.1/"} {
 		recorder := httptest.NewRecorder()
-		request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"`+target+`","depth":1}`))
+		request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"`+target+`","depth":1}`)))
 		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("X-Lang", "en")
 
@@ -59,7 +59,7 @@ func TestCreateScanAllowsAllowlistedHost(t *testing.T) {
 	router := newSecurityRouter(t, policy, 10)
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"http://demo/","depth":1}`))
+	request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"http://demo/","depth":1}`)))
 	request.Header.Set("Content-Type", "application/json")
 
 	router.ServeHTTP(recorder, request)
@@ -74,7 +74,7 @@ func TestCreateScanRateLimit(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		recorder := httptest.NewRecorder()
-		request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"https://example.ru","depth":1}`))
+		request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"https://example.ru","depth":1}`)))
 		request.Header.Set("Content-Type", "application/json")
 		router.ServeHTTP(recorder, request)
 		if recorder.Code != http.StatusCreated {
@@ -83,7 +83,7 @@ func TestCreateScanRateLimit(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"https://example.ru","depth":1}`))
+	request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"https://example.ru","depth":1}`)))
 	request.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(recorder, request)
 
@@ -100,7 +100,7 @@ func TestCreateScanBodyLimit(t *testing.T) {
 
 	body := `{"url":"https://example.ru","padding":"` + strings.Repeat("x", maxRequestBodyBytes) + `"}`
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(body))
+	request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(body)))
 	request.Header.Set("Content-Type", "application/json")
 
 	router.ServeHTTP(recorder, request)

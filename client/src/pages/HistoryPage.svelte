@@ -15,6 +15,7 @@
   let cleared = $state(0);
   let rerunID = $state("");
   let rerunError = $state("");
+  let loadSeq = 0;
 
   const summary = $derived(historySummary(scans));
 
@@ -42,7 +43,7 @@
     try {
       cleared = await clearHistory();
       clearOpen = false;
-      await load();
+      await load(query);
     } catch (cause) {
       error = cause instanceof Error ? cause.message : t("history.clearError");
       clearOpen = false;
@@ -52,15 +53,21 @@
   }
 
   async function load(url = "") {
+    const seq = ++loadSeq;
     loading = true;
     error = "";
 
     try {
-      scans = await listScans(url, 50);
+      const next = await listScans(url, 50);
+      if (seq !== loadSeq) return;
+      scans = next;
     } catch (cause) {
+      if (seq !== loadSeq) return;
       error = cause instanceof Error ? cause.message : t("history.error");
     } finally {
-      loading = false;
+      if (seq === loadSeq) {
+        loading = false;
+      }
     }
   }
 
@@ -187,7 +194,13 @@
         {query.trim() ? t("history.emptyFilter") : t("history.empty")}
       </p>
     {:else}
-      <div class="table-wrap">
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div
+        class="table-wrap"
+        tabindex="0"
+        role="region"
+        aria-label={t("history.caption")}
+      >
         <table class="table">
           <caption class="visually-hidden">{t("history.caption")}</caption>
           <thead>

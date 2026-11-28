@@ -21,7 +21,7 @@ func gateRouter(t *testing.T, scan store.Scan) *httptest.ResponseRecorder {
 
 	router := NewRouter(Options{Store: memory, Log: slog.Default()})
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/scans/"+scan.ID+"/gate?min_score=80&max_critical=0", nil)
+	request := withClient(httptest.NewRequest(http.MethodGet, "/api/scans/"+scan.ID+"/gate?min_score=80&max_critical=0", nil))
 	request.Header.Set("X-Client-ID", scan.Owner)
 	router.ServeHTTP(recorder, request)
 
@@ -103,7 +103,7 @@ func TestGateHidesForeignScan(t *testing.T) {
 
 	router := NewRouter(Options{Store: memory, Log: slog.Default()})
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/scans/private/gate", nil)
+	request := withClient(httptest.NewRequest(http.MethodGet, "/api/scans/private/gate", nil))
 	request.Header.Set("X-Client-ID", "browser-b")
 	router.ServeHTTP(recorder, request)
 
@@ -157,7 +157,7 @@ func TestGateRejectsInvalidLimit(t *testing.T) {
 	for _, path := range cases {
 		t.Run(path, func(t *testing.T) {
 			recorder := httptest.NewRecorder()
-			request := httptest.NewRequest(http.MethodGet, path, nil)
+			request := withClient(httptest.NewRequest(http.MethodGet, path, nil))
 			request.Header.Set("X-Client-ID", "browser-a")
 			router.ServeHTTP(recorder, request)
 

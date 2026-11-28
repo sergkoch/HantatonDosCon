@@ -95,8 +95,9 @@ curl -s http://localhost:8080/api/health
 
 curl -s -X POST http://localhost:8080/api/scans \
   -H 'Content-Type: application/json' \
+  -H 'X-Client-ID: local-browser-01' \
   -d '{"url":"http://demo/","depth":1}'
-# затем GET /api/scans/{id} и отчёт /report/{id}
+# затем GET /api/scans/{id} с тем же X-Client-ID и отчёт /report/{id}
 
 # CI-гейт: 200 — пройден, 409 — есть проблемы
 curl --fail http://localhost:8080/api/scans/{id}/gate?min_score=80 \
@@ -105,11 +106,13 @@ curl --fail http://localhost:8080/api/scans/{id}/gate?min_score=80 \
 
 ## Сервер
 
-- Хост: `84.54.57.218`, пользователь `andrey`, репозиторий `/opt/accessible-content`.
+- Хост: `84.54.57.218`, пользователь `serega`, репозиторий `/opt/accessible-content`.
 - Git на сервере — от `serega`: `sudo -u serega git ...`.
 - Docker — только через `sudo docker ...`.
 - Обновление: `sudo -u serega git fetch origin main && sudo -u serega git reset --hard origin/main`,
   затем `sudo docker compose -f deploy/docker-compose.yml up -d --build`.
+- Автодеплой GitHub Actions включён (`DEPLOY_ENABLED=true`), секреты деплоя
+  лежат в GitHub Secrets.
 - Ключи ИИ лежат в `deploy/.env` на сервере.
 
 ## Контекст и состояние
@@ -122,8 +125,10 @@ curl --fail http://localhost:8080/api/scans/{id}/gate?min_score=80 \
 
 Коротко: основная функциональность в `main`; публичный стенд —
 `https://not-domain.ru` (Let's Encrypt, автопродление), туннель не нужен.
-Демо-сервис `demo` есть в compose, поэтому скан `http://demo/` работает.
-PDF-анализатор работает в процессе через PDFium в WASM; OCR — только план.
+Демо-сервис `demo` есть в compose, скан `http://demo/` работает, публичная
+страница — `https://not-domain.ru/demo/`. PDF-анализатор работает в процессе
+через PDFium в WASM; OCR — только план. Все scan-эндпоинты требуют
+`X-Client-ID`; это приватность, а не авторизация.
 
 ## Стиль ответов
 

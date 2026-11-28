@@ -20,6 +20,13 @@ func newTestRouter() *gin.Engine {
 	})
 }
 
+const testClientID = "test-browser"
+
+func withClient(request *http.Request) *http.Request {
+	request.Header.Set("X-Client-ID", testClientID)
+	return request
+}
+
 func TestHealth(t *testing.T) {
 	router := newTestRouter()
 	recorder := httptest.NewRecorder()
@@ -44,7 +51,7 @@ func TestHealth(t *testing.T) {
 func TestCreateScan(t *testing.T) {
 	router := newTestRouter()
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"https://example.ru","depth":2}`))
+	request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"https://example.ru","depth":2}`)))
 	request.Header.Set("Content-Type", "application/json")
 
 	router.ServeHTTP(recorder, request)
@@ -74,7 +81,7 @@ func TestCreateScan(t *testing.T) {
 func TestInvalidURL(t *testing.T) {
 	router := newTestRouter()
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"ftp://example.ru"}`))
+	request := withClient(httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"url":"ftp://example.ru"}`)))
 	request.Header.Set("Content-Type", "application/json")
 
 	router.ServeHTTP(recorder, request)
@@ -87,7 +94,7 @@ func TestInvalidURL(t *testing.T) {
 func TestScanNotFound(t *testing.T) {
 	router := newTestRouter()
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/scans/missing", nil)
+	request := withClient(httptest.NewRequest(http.MethodGet, "/api/scans/missing", nil))
 
 	router.ServeHTTP(recorder, request)
 

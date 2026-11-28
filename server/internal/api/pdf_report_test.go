@@ -16,6 +16,7 @@ func TestDownloadPDF(t *testing.T) {
 	memory := store.NewMemory()
 	scan := store.Scan{
 		ID:        "scan-pdf",
+		Owner:     testClientID,
 		URL:       "https://example.ru",
 		Status:    store.StatusDone,
 		Version:   1,
@@ -40,7 +41,7 @@ func TestDownloadPDF(t *testing.T) {
 
 	router := NewRouter(Options{Store: memory, Log: slog.Default()})
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/scans/scan-pdf/pdf", nil)
+	request := withClient(httptest.NewRequest(http.MethodGet, "/api/scans/scan-pdf/pdf", nil))
 
 	router.ServeHTTP(recorder, request)
 
@@ -59,6 +60,7 @@ func TestDownloadPDFInBothLanguages(t *testing.T) {
 	memory := store.NewMemory()
 	scan := store.Scan{
 		ID:        "scan-pdf-lang",
+		Owner:     testClientID,
 		URL:       "https://example.ru",
 		Status:    store.StatusDone,
 		Lang:      "ru",
@@ -88,7 +90,7 @@ func TestDownloadPDFInBothLanguages(t *testing.T) {
 
 	for _, lang := range []string{"ru", "en"} {
 		recorder := httptest.NewRecorder()
-		request := httptest.NewRequest(http.MethodGet, "/api/scans/scan-pdf-lang/pdf?lang="+lang, nil)
+		request := withClient(httptest.NewRequest(http.MethodGet, "/api/scans/scan-pdf-lang/pdf?lang="+lang, nil))
 		router.ServeHTTP(recorder, request)
 
 		if recorder.Code != http.StatusOK {

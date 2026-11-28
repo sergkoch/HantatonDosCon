@@ -38,3 +38,22 @@ func TestDiffWithoutCodes(t *testing.T) {
 		t.Fatalf("expected one added and one fixed, got %+v", changes)
 	}
 }
+
+func TestDiffIgnoresOKFindings(t *testing.T) {
+	previous := []Finding{
+		finding("IMG_NO_ALT", "<img>"),
+		{Code: "IMG_ALT_AI_OK", Kind: "image", Severity: SeverityOK, Title: "ok", Element: "<img>", WCAG: "1.1.1"},
+	}
+	current := []Finding{
+		finding("IMG_NO_ALT", "<img>"),
+		{Code: "PDF_ALT_OK", Kind: "pdf", Severity: SeverityOK, Title: "ok", Element: "<a>", WCAG: "1.1.1"},
+	}
+
+	changes := Diff(previous, current)
+	if len(changes.Added) != 0 || len(changes.Fixed) != 0 {
+		t.Fatalf("ok findings must not appear in diff: %+v", changes)
+	}
+	if changes.Remaining != 1 {
+		t.Fatalf("expected one remaining problem, got %d", changes.Remaining)
+	}
+}

@@ -10,10 +10,14 @@ docker compose -f deploy/docker-compose.yml up --build
 
 ## Что внутри
 
-- `db` — PostgreSQL (порт 5432 проброшен на хост для локальных миграций);
+- `db` — PostgreSQL (порт 5432 доступен только на `127.0.0.1` для локальных миграций);
 - `migrate` — применяет миграции (goose) и завершается;
 - `api` — Go-сервис (ждёт успешных миграций);
+- `demo` — демо-сайт с ошибками, доступен снаружи как `/demo/`;
 - `web` — nginx + Svelte.
+
+У `db`, `api`, `demo` и `web` стоит `restart: unless-stopped`: после
+перезагрузки сервера контейнеры поднимаются сами.
 
 Наружу открыт только `web` (порт 8080).
 
@@ -67,10 +71,10 @@ docker compose -f deploy/docker-compose.yml exec db \
 ## Переменные
 
 - `SCAN_ALLOWED_HOSTS` — хосты, которым разрешено ходить на приватные адреса.
-  Для локального демо там стоит `demo`. В проде оставьте пустым.
+  В compose по умолчанию `demo,not-domain.ru,www.not-domain.ru`.
 - `RATE_LIMIT_PER_MINUTE` — сколько сканов принимает API за минуту, по умолчанию 20.
-- `CORS_ORIGIN` — разрешённый origin для API. В проде укажите
-  `https://not-domain.ru`, в разработке можно оставить `*`.
+- `CORS_ORIGIN` — разрешённый origin для API. По умолчанию
+  `https://not-domain.ru`.
 - `AI_BASE_URL`, `AI_API_KEY`, `AI_TEXT_MODEL`, `AI_VISION_MODEL` — доступ к ИИ.
   Без ключа проверки ИИ пропускаются.
 
@@ -83,4 +87,13 @@ docker compose -f deploy/docker-compose.yml exec db \
 - Тело запроса ограничено 1 МиБ, сканы — 20 в минуту.
 - Секреты — в `.env`, не в образе.
 - Логи не содержат ключей.
-- PDF-анализатор — отдельный контейнер (при подключении).
+- PDF-анализатор работает в процессе через PDFium в WASM; отдельный контейнер
+  не нужен.
+
+## Автодеплой
+
+GitHub Actions workflow **Deploy to production** запускается на push в `main`,
+если в репозитории задана переменная `DEPLOY_ENABLED=true` и секреты
+`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`, `DEPLOY_SSH_KEY`.
+Он делает `git reset --hard origin/main`, пересобирает compose и проверяет
+`/api/health`.

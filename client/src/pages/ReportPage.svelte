@@ -20,6 +20,7 @@
   let displayScore = $state(0);
   let rerunning = $state(false);
   let rerunError = $state("");
+  let gateCopyStatus = $state<"idle" | "copied" | "error">("idle");
 
   const circumference = 2 * Math.PI * 68;
 
@@ -161,7 +162,7 @@
 
   function safeCell(value: string): string {
     const text = value ?? "";
-    return /^[=+\-@]/.test(text) ? `'${text}` : text;
+    return /^[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
   }
 
   const severityKeys = {
@@ -182,8 +183,10 @@
 
       link.href = url;
       link.download = `report-${current.id}-${lang}.pdf`;
+      document.body.append(link);
       link.click();
-      URL.revokeObjectURL(url);
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (cause) {
       pdfError = cause instanceof Error ? cause.message : t("report.pdfError");
     }
@@ -203,7 +206,9 @@
         tr("csv.recommendation"),
         tr("csv.wcag"),
       ],
-      ...localizeItems(current.findings).map((finding) => [
+      ...localizeItems(current.findings)
+        .filter((finding) => finding.severity !== "ok")
+        .map((finding) => [
         tr(severityKeys[finding.severity]),
         kindLabel(finding.kind, locale),
         finding.title,
@@ -279,8 +284,48 @@
     return [
       "curl --fail --silent --show-error \\",
       `  "${origin}/api/scans/${scanID}/gate?min_score=80&max_critical=0" \\`,
+      '  -H "X-Client-ID: $ACCESSIBLE_CLIENT_ID"',
+    ].join("\n");
+  }
+
+  function gateFullCommand(scanID: string): string {
+    const origin =
+      typeof window === "undefined" ? "" : window.location.origin;
+
+    return [
+      "curl --fail --silent --show-error \\",
+      `  "${origin}/api/scans/${scanID}/gate?min_score=80&max_critical=0" \\`,
       `  -H "X-Client-ID: ${clientID()}"`,
     ].join("\n");
+  }
+
+  async function copyGateCommand(scanID: string) {
+    gateCopyStatus = "idle";
+    const command = gateFullCommand(scanID);
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("clipboard unavailable");
+      }
+      await navigator.clipboard.writeText(command);
+      gateCopyStatus = "copied";
+    } catch {
+      // Fallback для браузеров, где clipboard API запрещён.
+      try {
+        const area = document.createElement("textarea");
+        area.value = command;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.append(area);
+        area.select();
+        const copied = document.execCommand("copy");
+        area.remove();
+        gateCopyStatus = copied ? "copied" : "error";
+      } catch {
+        gateCopyStatus = "error";
+      }
+    }
   }
 </script>
 
@@ -380,6 +425,16 @@
               })}
             {/if}
             {t("report.coverageNote")}
+            {#if current.ai}
+              {#if current.ai.enabled && current.ai.imagesChecked + current.ai.linksChecked > 0}
+                {t("report.aiChecked", {
+                  images: current.ai.imagesChecked,
+                  links: current.ai.linksChecked,
+                })}
+              {:else}
+                {t("report.aiSkipped")}
+              {/if}
+            {/if}
           </p>
         </div>
 
@@ -545,7 +600,8 @@
         {/each}
       </fieldset>
 
-      <div class="table-wrap">
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <div class="table-wrap" tabindex="0" role="region" aria-label={t("report.tableCaption")}>
         <table class="table">
           <caption class="visually-hidden">{t("report.tableCaption")}</caption>
           <thead>
@@ -570,6 +626,13 @@
                   <strong>{finding.title}</strong>
                   <code class="code code--block">{finding.element}</code>
                   <span class="muted">WCAG {finding.wcag}</span>
+                  {#if typeof finding.confidence === "number"}
+                    <span class="muted">
+                      · {t("report.aiConfidence", {
+                        percent: Math.round(finding.confidence * 100),
+                      })}
+                    </span>
+                  {/if}
                 </td>
                 <td>{finding.recommendation}</td>
               </tr>
@@ -611,6 +674,22 @@
           <p class="gate__hint">{t("report.gateHint")}</p>
           <p class="gate__label">{t("report.gateCurl")}</p>
           <pre class="gate__code"><code>{gateExample(current.id)}</code></pre>
+          <div class="gate__actions">
+            <Button
+              type="button"
+              variant="ghost"
+              onclick={() => void copyGateCommand(current.id)}
+            >
+              {t("report.gateCopy")}
+            </Button>
+            {#if gateCopyStatus !== "idle"}
+              <span class="gate__status" role="status" aria-live="polite">
+                {gateCopyStatus === "copied"
+                  ? t("report.gateCopied")
+                  : t("report.gateCopyError")}
+              </span>
+            {/if}
+          </div>
         </div>
       </details>
 
