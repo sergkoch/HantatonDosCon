@@ -147,7 +147,6 @@
         {t("home.demoOpen")}
       </a>
     </div>
-    <p class="hero__evidence">{t("home.evidence")}</p>
   </section>
 
   <section class="section" id="problem" aria-labelledby="problem-title">

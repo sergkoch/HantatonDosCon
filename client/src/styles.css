@@ -615,12 +615,6 @@ a:hover {
   text-underline-offset: 3px;
 }
 
-.hero__evidence {
-  margin: var(--space-3) 0 0;
-  color: var(--muted);
-  font-size: 0.9375rem;
-}
-
 .problem {
   padding: var(--space-6);
   background: var(--glass);
